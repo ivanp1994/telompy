@@ -1,3 +1,7 @@
+#scripts I actively use to test out my data
+confidence_calculation.py
+test.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

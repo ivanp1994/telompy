@@ -4,14 +4,14 @@ Created on Wed May  8 10:11:51 2024
 
 @author: ivanp
 """
-from typing import Iterable, Callable, Union
+from typing import Iterable, Callable, Union, Literal
 from functools import partial
 from multiprocessing import Pool
 
 import pandas as pd
 
 from .utils import read_map_file, joinpaths, func_timer
-from .const import CONTIG_PATH, QUERYCMAP_PATH, MASTER_XMAP, MASTER_REFERENCE
+from .const import CONTIG_PATH, QUERYCMAP_PATH, MASTER_XMAP, MASTER_REFERENCE, MASTER_QUERY
 from .const import LOGGER as logger
 
 
@@ -70,6 +70,9 @@ def fish_offset(last_aligned: pd.DataFrame, reference_cmap: pd.DataFrame) -> pd.
     the last aligned label on reference is not the last label on reference, then
     said offset will be 19,365,800 - 18,365,800 = 1,000,000
 
+    EXTRA: added info about the number of Labels on Reference not mapped to
+    contig
+
     """
     # last_aligned = fish_last_aligned_label(master_xmap)
     # get positions of last aligned labels
@@ -83,8 +86,8 @@ def fish_offset(last_aligned: pd.DataFrame, reference_cmap: pd.DataFrame) -> pd.
 
     # get positions of last labels
     # last label on reference
-    last_labels = reference_cmap[reference_cmap.SiteID == reference_cmap.NumSites][["CMapId", "Position"]]
-    last_labels.columns = ["RefContigID", "LastPosition"]
+    last_labels = reference_cmap[reference_cmap.SiteID == reference_cmap.NumSites][["CMapId", "SiteID", "Position"]]
+    last_labels.columns = ["RefContigID", "LastID", "LastPosition"]
 
     # merge the two
     aligned_positions = pd.merge(left=aligned_positions,
@@ -94,6 +97,7 @@ def fish_offset(last_aligned: pd.DataFrame, reference_cmap: pd.DataFrame) -> pd.
                                  how="left")
 
     aligned_positions["Offset"] = aligned_positions["LastPosition"] - aligned_positions["Position"]
+    aligned_positions["Offset_Label"] = aligned_positions["LastID"] - aligned_positions["SiteID"]
     return aligned_positions
 
 
@@ -123,7 +127,7 @@ def fish_last_label(path: str, main_xmap: str = MASTER_XMAP, main_cmapr: str = M
 
     # merge them
     last_aligned = pd.merge(left=last_aligned,
-                            right=aligned_offsets[["QryContigID", "RefContigID", "Offset"]],
+                            right=aligned_offsets[["QryContigID", "RefContigID", "Offset", "Offset_Label"]],
                             left_on=["QryContigID", "RefContigID"],
                             right_on=["QryContigID", "RefContigID"])
     return last_aligned
@@ -168,6 +172,84 @@ def get_first_query_last_reference(align_str: str) -> int:
     # microbenchmarking I've gotten generator to be ~3 ms slower
     align = [tuple([int(x) for x in x.split(",")]) for x in align_str[1:-1].split(")(")]  # pylint: disable=R1728
     return max(align)[1]
+
+
+def get_number_of_unpaired_contig_labels(path: Union[str, pd.DataFrame], alignment: str, qrycontigid: int,
+                                         orientation: Literal["-", "+"],
+                                         contig_query: str = MASTER_QUERY) -> int:
+    """
+    This function returns number of unpaired labels on the contig (query).
+    The contig is a query in a contig-to-reference assembly.
+
+    For example, suppose you have a pairing:
+        (.,.)(.,.)...(27777,35)
+    The label 27777 on the reference is paired with label 35 on the query.
+
+    How many labels on the query are unpaired with the reference?
+    If the orientation is negative, then it means that the labels are in a
+    descending order:
+        ...(27775,37),(27776,36),(27777,35)
+    Meaning that there are 34 labels that are unpaired.
+
+    However, if the orientation is positive, then it means that the labels
+    are in an ascending order:
+        ... (27775,33),(27776,34),(27777,35)
+
+    We cannot know how many (if any) labels are unpaired.
+    In that case, we must open the query CMAP, and find the last label.
+    For example, if we found that the last label is 50,
+    then it means we have 15 unpaired labels.
+
+
+
+    NOTE: It returns number of labels AFTER last pairing, not
+    TOTAL number of unpaired labels. For example:
+        (1,4)(2,2) of - Orientation
+    Contains only one unpaired label after the last pair, and that is label 1.
+    Label 3 is also unpaired, but not taken into consideration for the
+    purpose of this project
+    """
+    if orientation not in ["-", "+"]:
+        raise ValueError("Invalid orientation - must be either '-' or '+'")
+
+    last_label_qry = get_first_query_last_reference(alignment)
+
+    # if orientation is negative
+    # then queries are descending
+    # so it always ends with 1
+    if orientation == "-":
+        return last_label_qry - 1
+
+    # if it's positive, we need to info about molecules stored in query
+    # if the path is a string
+    if isinstance(path, str):
+        _cmap_contig_ref = read_molecules_cmap(joinpaths(path, contig_query), [qrycontigid])
+
+    # if the path is an already loaded CMAP
+    elif isinstance(path, pd.DataFrame):
+        _cmap_contig_ref = path[path.CMapId == qrycontigid]
+
+    # raise ValueError otherwise
+    # TODO - maybe refactor this into logging?
+    else:
+        raise ValueError("Path must be either a string or a DataFrame")
+
+    last_label = _cmap_contig_ref["SiteID"].max()-1
+    return last_label - last_label_qry
+
+
+def _gnoucl(subrow: pd.Series, molecules: pd.DataFrame) -> pd.Series:
+    """
+    A wrapper around 'get_number_of_unpaired_contig_labels'
+
+    """
+    aln_str = subrow["RefContigMolPair"]
+    qry_id = subrow["QryContigID"]
+    orient = subrow["Orientation"]
+    return get_number_of_unpaired_contig_labels(path=molecules,
+                                                alignment=aln_str,
+                                                qrycontigid=qry_id,
+                                                orientation=orient)
 
 
 def alignments_to_reference(xmap_df: pd.DataFrame, label: int) -> pd.DataFrame:
@@ -271,7 +353,10 @@ def remap_query_position(contig_aligned: pd.DataFrame, molecules: pd.DataFrame, 
     return contig_aligned
 
 
-def calculate_telomere(row: pd.Series, path: str, contig_format: str = CONTIG_PATH, querycmap_format: str = QUERYCMAP_PATH) -> pd.DataFrame:
+def calculate_telomere(row: pd.Series, path: str,
+                       contig_format: str = CONTIG_PATH,
+                       querycmap_format: str = QUERYCMAP_PATH,
+                       contig_query: str = MASTER_QUERY,) -> pd.DataFrame:
     """
     Given a row, which is a pandas Series, and path which is the location
     of a BNGO assembly, calculates telomere length.
@@ -302,10 +387,10 @@ def calculate_telomere(row: pd.Series, path: str, contig_format: str = CONTIG_PA
     # master_chromosome = row["RefContigID"]
     master_contig = row["QryContigID"]
     contig_alignment = row["Alignment"]
-    telomere_offset = row["Offset"]
 
-    logger.info("Processing telomeres mapped to RefContigID %d from QryContigID %d", row["RefContigID"], row["QryContigID"])
-    logger.debug("Offset is %d", telomere_offset)
+    logger.info("Processing telomeres mapped to RefContigID %d from QryContigID %d",
+                row["RefContigID"], row["QryContigID"])
+
     # READING CONTIG PATHS
     contig_path = joinpaths(path, contig_format.format(x=master_contig))
     molecules_path = joinpaths(path, querycmap_format.format(x=master_contig))
@@ -316,23 +401,44 @@ def calculate_telomere(row: pd.Series, path: str, contig_format: str = CONTIG_PA
     # reads only those alignments that contain query label
     # on the reference
     contig_aligned = read_contig_xmap(contig_path, aligned_label)
+
     # reads molecules found in alignment to the last reference
     molecules = read_molecules_cmap(molecules_path, contig_aligned.QryContigID.unique())
+
+    # returns number of labels on molecules that are unpaired
+    paired_query = extract_reference_query_pair(contig_aligned, aligned_label)
+    contig_aligned["RefContigMolPair"] = paired_query.astype(str).apply(lambda x: f"({aligned_label},{x})") #pylint:disable=E1137
+    contig_aligned["UnpairedMoleculeLabels"] = contig_aligned.apply(_gnoucl, axis=1,   # pylint:disable=E1101,E1137
+                                                                    molecules=molecules)
+    # pulling out position of pair of the reference label
     contig_aligned = remap_query_position(contig_aligned, molecules, aligned_label)
+
     # extracting length of telomeres according to the formula
     contig_aligned["TelomereLen"] = contig_aligned["Position"]
     contig_aligned.loc[contig_aligned["Orientation"] == master_orientation,
                        "TelomereLen"] = contig_aligned["QryLen"] - contig_aligned["Position"]  # pylint:disable=C0301
     # correct for the offset
-    contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen"] - telomere_offset
+    contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen"] - row["Offset"]
 
     # reformat and return
-    contig_aligned = contig_aligned[["QryContigID", "RefContigID", "Orientation", "Confidence", "TelomereLen", "TelomereLen_corr"]]
-    contig_aligned.columns = ["MoleculeID", "QryContigID", "MoleculeOrientation", "MoleculeConfidence", "TelomereLen", "TelomereLen_corr"]
+    contig_aligned = contig_aligned[["QryContigID", "RefContigID", "Orientation",
+                                     "Confidence", "TelomereLen", "TelomereLen_corr", "UnpairedMoleculeLabels"]]
+    contig_aligned.columns = ["MoleculeID", "QryContigID", "MoleculeOrientation",
+                              "MoleculeConfidence", "TelomereLen", "TelomereLen_corr", "UnpairedMoleculeLabels"]
+
+    # inserting information
     contig_aligned.insert(0, "RefContigID", row["RefContigID"])
     contig_aligned.insert(4, "ContigOrientation", master_orientation)
 
-    # return contig_aligned[["RefContigID","QryContigID","MoleculeID","MoleculeConfidence","TelomereLen","TelomereLen_corr"]]
+    contig_aligned["UnpairedReferenceLabels"] = row["Offset_Label"]
+    contig_aligned["UnpairedContigLabels"] = get_number_of_unpaired_contig_labels(path=path,
+                                                                                  alignment=row["Alignment"],
+                                                                                  qrycontigid=row["QryContigID"],
+                                                                                  orientation=row["Orientation"],
+                                                                                  contig_query=contig_query
+                                                                                  )
+
+
     # a vain attempt to decrease memory usage by casting length to an integer
     contig_aligned["TelomereLen"] = contig_aligned["TelomereLen"].astype(int)
     contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen_corr"].astype(int)
@@ -368,7 +474,7 @@ def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cma
     else:
         results = [frozen_calculation(row) for row in iterator]
     return results
-    
+
     # try:
     #     concatenated = pd.concat(results, ignore_index=True)
     # except MemoryError:
