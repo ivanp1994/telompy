@@ -17,9 +17,6 @@ from .const import LOGGER as logger
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
-
-#__all__ = ["fish_last_label", "calculate_telomere_lengths"]
-
 # %% FUNCTIONS FOR FISHING LAST LABELS ON MASTER ASSEMBLY
 
 
@@ -407,7 +404,7 @@ def calculate_telomere(row: pd.Series, path: str,
 
     # returns number of labels on molecules that are unpaired
     paired_query = extract_reference_query_pair(contig_aligned, aligned_label)
-    contig_aligned["RefContigMolPair"] = paired_query.astype(str).apply(lambda x: f"({aligned_label},{x})") #pylint:disable=E1137
+    contig_aligned["RefContigMolPair"] = paired_query.astype(str).apply(lambda x: f"({aligned_label},{x})")  # pylint:disable=E1137
     contig_aligned["UnpairedMoleculeLabels"] = contig_aligned.apply(_gnoucl, axis=1,   # pylint:disable=E1101,E1137
                                                                     molecules=molecules)
     # pulling out position of pair of the reference label
@@ -437,7 +434,6 @@ def calculate_telomere(row: pd.Series, path: str,
                                                                                   orientation=row["Orientation"],
                                                                                   contig_query=contig_query
                                                                                   )
-
 
     # a vain attempt to decrease memory usage by casting length to an integer
     contig_aligned["TelomereLen"] = contig_aligned["TelomereLen"].astype(int)

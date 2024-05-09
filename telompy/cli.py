@@ -117,10 +117,10 @@ def command_line_target():
     for path, name in targets:
         logger.info("Calculating telomere length for file found at %s", path)
         data = calculate_telomere_lengths(path, **args)
-        output_path = joinpaths(output_dir,f"{name}.csv")
-        pd.concat(data,axis=1).to_csv(output_path)
+        output_path = joinpaths(output_dir, f"{name}.csv")
+        pd.concat(data, axis=1).to_csv(output_path)
         logger.info("Saved telomere lengths at %s", output_path)
-        
+
         """
         logger.info("Saving telomere lengths in %d fragments", len(data))
         for idx, df in enumerate(data):
