@@ -4,7 +4,7 @@ Created on Wed May  8 10:11:51 2024
 
 @author: ivanp
 """
-from typing import Iterable, Callable, Union, Literal
+from typing import Iterable, Callable, Union, Literal, Optional
 from functools import partial
 from multiprocessing import Pool
 
@@ -281,7 +281,7 @@ def extract_reference_query_pair(xmap_df: pd.DataFrame, aligned_label: int) -> p
     return xmap_df.Alignment.str.extract(r"\((%d),(\d+)\)" % aligned_label)[1].astype(int)
 
 
-def read_contig_xmap(contig_path: str, aligned_label: int = None) -> pd.DataFrame:
+def read_contig_xmap(contig_path: str, aligned_label: Optional[int] = None) -> pd.DataFrame:
     """
     Given an XMAP file found at contig_path,
     this function reads the XMAP file and given a label position on the
@@ -297,7 +297,7 @@ def read_contig_xmap(contig_path: str, aligned_label: int = None) -> pd.DataFram
     return contig_aligned
 
 
-def read_molecules_cmap(molecules_path: str, molecule_ids: Iterable[int] = None) -> pd.DataFrame:
+def read_molecules_cmap(molecules_path: str, molecule_ids: Optional[Iterable[int]] = None) -> pd.DataFrame:
     """
     Given an CMAP file found at molecules path,
     this function reads the CMAP file and then
