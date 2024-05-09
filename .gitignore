@@ -2,6 +2,7 @@
 confidence_calculation.py
 test.py
 telomere_lengths/
+.pylint.d/
 
 
 # Byte-compiled / optimized / DLL files
