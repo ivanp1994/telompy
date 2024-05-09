@@ -1,6 +1,8 @@
 #scripts I actively use to test out my data
 confidence_calculation.py
 test.py
+telomere_lengths/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
