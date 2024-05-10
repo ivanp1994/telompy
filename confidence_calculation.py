@@ -1,9 +1,105 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu May  9 12:28:10 2024
+TelomerePosition!
+
+we can rip telomere positions from Table Tool
+https://genome.ucsc.edu/cgi-bin/hgTables
+
+
+This information can be found in the "gap" database table. Use the Table Browser to extract it. To do this, select your assembly and the gap table, then click the " filter Create" button. Set the "type" field to centromere telomere (separated by a space). For help using the Table Browser, visit the User's Guide.
+
+
+What we find here is following:
+    
+    For right telomeres (start is not 0, using start)
+    
+    ContigLength - TelomerePosition is equal to gap size
+    
+    In right telomeres, gap size is 100000 (arbitrary), meaning that
+    our length of contig is equal to TelomereStart + Gap Size
+    
+    TELOMERE:   ------------|-----------]
+    REFERENCE:  ----x-------------------]
+    
+    in the above, x is the last label on reference
+    
+    We can estimate distance of Telomere to Label pos
+    
+    TELOMERE:   ------------|-----------]
+    REFERENCE:   ----x-------------------]
+    DISTANCE:  ------++++++++-------------
+    
+    SINCE OUR BASICALLY WORKS LIKE THIS
+    
+    REFERENCE: ---------|------------]
+    MOLECULE:  ---------|----|-----|-----]
+    TELOMERE:           |----------------|
+    
+    we would theoretically need to subtract! the distance
+    from our telomere length to get better calculation
+    
+    
+More details
+
+x = Labels
+] = End of contig
+    
+
+REFERENCE:  ---------x-----]
+    
+We know that the gap size is 10 000, lets call this GS
+Our position of telomere start is equal to:
+    RefLen - GS
+    
+From this, we have two options:
+
+1. TelomereStart (TS) is behind the label:
+REFERENCE: ---------|--x-----]
+
+2. TelomereStart(TS) is in front of the label:
+REFERENCE: -----------x---|--]
+
+In first case, TS (|) - LL (x) is going to be
+negative     
+so we can theoretically calculate Telomere_corr via
+
+Telomere_corr = TelomereLen - Offset
+
+
+
+
+    
+    
+    
+    THEORETICALLY
+    
+TelomerePos = RefLen - 100000 #gap size
+TS = TelomereStart
+RL = ReferenceLength
+LL = LastLabel
+GS = GapSize
+O = Offset
+
+TL = TelomereLength
+TLC = TelomereLengthCorrected
+
+TS = RL - GS 
+O = LL - TS
+
+O = LL - (RL - GS)
+O = LL - RL + GS
+
+
+TLC = TL - O
+    
+
+
+ContigLen == RefLen
 
 @author: ivanp
 """
+#%%
 import pandas as pd
 from telompy.funcs import read_map_file, joinpaths
 from telompy.const import CONTIG_PATH, QUERYCMAP_PATH, MASTER_XMAP, MASTER_REFERENCE, MASTER_QUERY
@@ -17,7 +113,7 @@ from telompy.funcs import calculate_telomere
 from typing import Literal,Union
 
 path =  r"C:\#BIONANO_DATA\PROBLEMATIC_TELOMER"
-
+path = r"E:\isabella\telomeres\PROBLEMATIC_TELOMER"
 
 #master_xmap = read_map_file(joinpaths(path, MASTER_XMAP)) #<-the entire contig
 #master_cmap = read_map_file(joinpaths(path, MASTER_REFERENCE)) #<-the reference
@@ -25,17 +121,67 @@ path =  r"C:\#BIONANO_DATA\PROBLEMATIC_TELOMER"
 
 
 
-path =  r"C:\#BIONANO_DATA\PROBLEMATIC_TELOMER"
+#read in master reference
+master_cmap = read_map_file(joinpaths(path, MASTER_REFERENCE))
+length = master_cmap.drop_duplicates(["CMapId","ContigLength"])[["CMapId","ContigLength"]]
+
+
+
+
+
+
+#%% now we have a file called LastPosition in MASTER XMAP
 master_xmap = fish_last_label(joinpaths(path))
+master_xmap.pop("Alignment")
+
+#%% load in telomere positions 
+_telomerepos = pd.read_csv(r"C:\Users\Ivan\Desktop\IRB_Folder\TELOMERE\telomerepos.txt",
+            sep="\t")
+
+_telomerepos["chrom"]=_telomerepos["chrom"].str.replace("chr","").replace({'X': 20, 'Y': 21}).astype(int)
+teloms_right = _telomerepos[_telomerepos["chromStart"]!=0][["chrom","chromStart"]]
+teloms_right.columns = ["RefContigID","TelomerePosition"]
 
 
-row= master_xmap.iloc[7] # 4th 2611 map
-telamer = calculate_telomere(path=path,row=row)
+master_xmap = pd.merge(master_xmap,teloms_right,
+                       left_on="RefContigID",right_on="RefContigID",
+                       how="left")
+
+master_xmap = pd.merge(master_xmap,length,
+                       right_on="CMapId",
+                       left_on="RefContigID",
+                       how="left")
+
+#
+master_xmap["RefLen/ContigLength"] = master_xmap["RefLen"] / master_xmap["ContigLength"]
+
+
+
+## formula
+
 
 #%%
-import seaborn as sns
+master_xmap["Length-TelomerePos"] = master_xmap["ContigLength"] - master_xmap["TelomerePosition"]
+master_xmap["TelomerePos-LastAlignedLabel"] = master_xmap["TelomerePosition"] - master_xmap["AlignedLabelPosition"]
+master_xmap["TelomerePos-LastLabel"] = master_xmap["TelomerePosition"] - master_xmap["RefEndPos"]
 
-sns.relplot(x=telamer["TelomereLen_corr"],y=telamer["UnpairedMoleculeLabels"])
+master_xmap["TeloPosCalc"] = master_xmap["RefLen"] -  100000
+master_xmap["OffSet"] = master_xmap["TeloPosCalc"] - master_xmap["AlignedLabelPosition"]
+
+gap_size = 10000
+master_xmap["OffSet2"] = master_xmap["AlignedLabelPosition"] - master_xmap["RefEndPos"] + gap_size
+
+gap_size = 0
+master_xmap["OffSet3"] = master_xmap["AlignedLabelPosition"] - master_xmap["RefEndPos"] + gap_size
+
+#row= master_xmap.iloc[7] # 4th 2611 map
+#telamer = calculate_telomere(path=path,row=row)
+#%%
+
+#%%
+#import seaborn as sns
+
+#sns.relplot(x=telamer["TelomereLen_corr"],y=telamer["UnpairedMoleculeLabels"])
 
 
 """

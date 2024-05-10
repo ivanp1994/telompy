@@ -1,5 +1,5 @@
 #scripts I actively use to test out my data
-confidence_calculation.py
+#confidence_calculation.py
 test.py
 telomere_lengths/
 .pylint.d/
