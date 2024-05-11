@@ -133,27 +133,86 @@ length = master_cmap.drop_duplicates(["CMapId","ContigLength"])[["CMapId","Conti
 #%% now we have a file called LastPosition in MASTER XMAP
 master_xmap = fish_last_label(joinpaths(path))
 master_xmap.pop("Alignment")
-
-#%% load in telomere positions 
+#
+# load in telomere positions 
 _telomerepos = pd.read_csv(r"C:\Users\Ivan\Desktop\IRB_Folder\TELOMERE\telomerepos.txt",
             sep="\t")
 
 _telomerepos["chrom"]=_telomerepos["chrom"].str.replace("chr","").replace({'X': 20, 'Y': 21}).astype(int)
 teloms_right = _telomerepos[_telomerepos["chromStart"]!=0][["chrom","chromStart"]]
-teloms_right.columns = ["RefContigID","TelomerePosition"]
+teloms_right.columns = ["RefContigID","TelomerePosition_D"]
 
 
 master_xmap = pd.merge(master_xmap,teloms_right,
                        left_on="RefContigID",right_on="RefContigID",
                        how="left")
+#%% FORMULA
+GAP_SIZE = 100000
+# what if gap size is 0
+# FORUMA FOR OFFSET THAT IS ADDED TO TELOMRE LEN
+#master_xmap["TelomereLabelOffset2"] = master_xmap["AlignedLabelPosition"] - master_xmap["RefLen"] + GAP_SIZE
 
-master_xmap = pd.merge(master_xmap,length,
-                       right_on="CMapId",
-                       left_on="RefContigID",
-                       how="left")
+
+
+gap_size = 0
+row = master_xmap.iloc[7]
+
+if gap_size is None:
+    gap_size = row["RefLen"] - row["AlignedLabelPosition"]
+    
+offset = row["AlignedLabelPosition"] - row["RefLen"] + gap_size
+
+    
+
+
+
+
+
+
+"""
+GAP_SIZE = 0
+# THIS PROVES THAT TELOMERE START POSITION IS
+# RefLen - GapSize
+master_xmap["TelomerePosition"] = master_xmap["RefLen"] - GAP_SIZE
+master_xmap["EQ1"] = master_xmap["TelomerePosition"]-master_xmap["TelomerePosition_D"]
+
+# TELOMERE LABEL OFFSET
+# the difference between telomre position and last aligned label
+# two cases:
+# --------x---|----] Telomere Position behind label
+# -----|-----x-----] TelomerePosition in front of label
+
+# first case - POSITIVE telomere label offset
+# second case - NEGATIVE telomere label offset
+master_xmap["TelomereLabelOffset"] = master_xmap["AlignedLabelPosition"] - master_xmap["TelomerePosition"]
+master_xmap["TelomereLabelOffset2"] = master_xmap["AlignedLabelPosition"] - master_xmap["RefLen"] + GAP_SIZE
+"""
+#%%
+
+
+
+#nevertheless, suppose we have TelomereLength, in that case we simply
+#master_xmap["TelomereLengthCorr"] = 150000 + master_xmap["TelomereLabelOffset"]
+
+#rounding up formula
+# TelomerePosition = RefLen - GapSize
+# TelomereLabelOffset = AlignedLabelPosition - TelomerePosition
+
+# formula is
+# TelomereLabelOffset = AlignedLabelPosition - RefLen + GapSize
+
+
+#%% the below shows that length of contig is equal to REFCONTIG LEN
+
+#master_xmap = pd.merge(master_xmap,length,
+#                       right_on="CMapId",
+#                       left_on="RefContigID",
+#                       how="left")
 
 #
-master_xmap["RefLen/ContigLength"] = master_xmap["RefLen"] / master_xmap["ContigLength"]
+#master_xmap["RefLen/ContigLength"] = master_xmap["RefLen"] / master_xmap["ContigLength"]
+
+# is calculation correct
 
 
 
@@ -161,6 +220,7 @@ master_xmap["RefLen/ContigLength"] = master_xmap["RefLen"] / master_xmap["Contig
 
 
 #%%
+"""
 master_xmap["Length-TelomerePos"] = master_xmap["ContigLength"] - master_xmap["TelomerePosition"]
 master_xmap["TelomerePos-LastAlignedLabel"] = master_xmap["TelomerePosition"] - master_xmap["AlignedLabelPosition"]
 master_xmap["TelomerePos-LastLabel"] = master_xmap["TelomerePosition"] - master_xmap["RefEndPos"]
@@ -173,7 +233,7 @@ master_xmap["OffSet2"] = master_xmap["AlignedLabelPosition"] - master_xmap["RefE
 
 gap_size = 0
 master_xmap["OffSet3"] = master_xmap["AlignedLabelPosition"] - master_xmap["RefEndPos"] + gap_size
-
+"""
 #row= master_xmap.iloc[7] # 4th 2611 map
 #telamer = calculate_telomere(path=path,row=row)
 #%%

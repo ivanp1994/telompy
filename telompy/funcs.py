@@ -354,7 +354,8 @@ def remap_query_position(contig_aligned: pd.DataFrame, molecules: pd.DataFrame, 
 def calculate_telomere(row: pd.Series, path: str,
                        contig_format: str = CONTIG_PATH,
                        querycmap_format: str = QUERYCMAP_PATH,
-                       contig_query: str = MASTER_QUERY,) -> pd.DataFrame:
+                       contig_query: str = MASTER_QUERY,
+                       gap_size:Optional[int]=None) -> pd.DataFrame:
     """
     Given a row, which is a pandas Series, and path which is the location
     of a BNGO assembly, calculates telomere length.
@@ -437,9 +438,18 @@ def calculate_telomere(row: pd.Series, path: str,
                                                                                   contig_query=contig_query
                                                                                   )
 
+    
+    # telomere correction via gap size
+    
+    if gap_size is None:
+        gap_size = row["RefLen"] - row["AlignedLabelPosition"]
+        
+    offset = row["AlignedLabelPosition"] - row["RefLen"] + gap_size
+    contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen"] + offset
+
     # a vain attempt to decrease memory usage by casting length to an integer
     contig_aligned["TelomereLen"] = contig_aligned["TelomereLen"].astype(int)
-    #contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen_corr"].astype(int)
+    contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen_corr"].astype(int)
 
     return contig_aligned
 
@@ -451,7 +461,7 @@ def time_function(*args, **kwargs) -> Callable:
 
 def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cmapr: str = MASTER_REFERENCE,
                                contig_format: str = CONTIG_PATH, querycmap_format: str = QUERYCMAP_PATH,
-                               threads: int = 1) -> Iterable[pd.DataFrame]:
+                               threads: int = 1, gap_size:Optional[int]=None) -> Iterable[pd.DataFrame]:
     """
     Calculates telomere lengths for a given path to BNGO de novo Assembly and
     returns list of DataFrames
@@ -463,7 +473,8 @@ def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cma
     # main_xmapdf = main_xmapdf[main_xmapdf.RefContigID.isin([4,14,20,21])]
     # main_xmapdf = main_xmapdf.head(1)
 
-    frozen_calculation = partial(time_function, path=path, contig_format=contig_format, querycmap_format=querycmap_format)
+    frozen_calculation = partial(time_function, path=path, contig_format=contig_format,
+                                 querycmap_format=querycmap_format,gap_size=gap_size)
     iterator = (x[1] for x in main_xmapdf.iterrows())
 
     if threads > 1:
