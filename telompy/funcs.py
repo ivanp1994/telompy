@@ -381,6 +381,7 @@ def calculate_telomere(row: pd.Series, path: str,
 
     """
     # TODO -- add formula
+    # TODO - better documentation
     # ROW UNPACKING
     master_orientation = row["Orientation"]
     # master_chromosome = row["RefContigID"]
@@ -422,13 +423,15 @@ def calculate_telomere(row: pd.Series, path: str,
     # reformat and return
     # NOTE: deleted TelomereLenCorr
     contig_aligned = contig_aligned[["QryContigID", "RefContigID", "Orientation",
-                                     "Confidence", "TelomereLen",  "UnpairedMoleculeLabels"]]
+                                     "Confidence", "TelomereLen",  "UnpairedMoleculeLabels","QryLen"]]
     contig_aligned.columns = ["MoleculeID", "QryContigID", "MoleculeOrientation",
-                              "MoleculeConfidence", "TelomereLen",  "UnpairedMoleculeLabels"]
+                              "MoleculeConfidence", "TelomereLen",  "UnpairedMoleculeLabels","MoleculeLen"]
 
     # inserting information
     contig_aligned.insert(0, "RefContigID", row["RefContigID"])
     contig_aligned.insert(4, "ContigOrientation", master_orientation)
+    contig_aligned.insert(5,"AlignedLabelPosition",row["AlignedLabelPosition"])
+    contig_aligned.insert(6,"LastReferencePosition",row["RefEndPos"])
 
     contig_aligned["UnpairedReferenceLabels"] = row["OffsetLabel"]
     contig_aligned["UnpairedContigLabels"] = get_number_of_unpaired_contig_labels(path=path,
@@ -443,7 +446,7 @@ def calculate_telomere(row: pd.Series, path: str,
     
     if gap_size is None:
         gap_size = row["RefLen"] - row["AlignedLabelPosition"]
-        
+    #TODO - do I insert last aligned label position
     offset = row["AlignedLabelPosition"] - row["RefLen"] + gap_size
     contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen"] + offset
 

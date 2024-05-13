@@ -113,7 +113,7 @@ from telompy.funcs import calculate_telomere
 from typing import Literal,Union
 
 path =  r"C:\#BIONANO_DATA\PROBLEMATIC_TELOMER"
-path = r"E:\isabella\telomeres\PROBLEMATIC_TELOMER"
+#path = r"E:\isabella\telomeres\PROBLEMATIC_TELOMER"
 
 #master_xmap = read_map_file(joinpaths(path, MASTER_XMAP)) #<-the entire contig
 #master_cmap = read_map_file(joinpaths(path, MASTER_REFERENCE)) #<-the reference
@@ -122,8 +122,8 @@ path = r"E:\isabella\telomeres\PROBLEMATIC_TELOMER"
 
 
 #read in master reference
-master_cmap = read_map_file(joinpaths(path, MASTER_REFERENCE))
-length = master_cmap.drop_duplicates(["CMapId","ContigLength"])[["CMapId","ContigLength"]]
+#master_cmap = read_map_file(joinpaths(path, MASTER_REFERENCE))
+#length = master_cmap.drop_duplicates(["CMapId","ContigLength"])[["CMapId","ContigLength"]]
 
 
 
@@ -135,13 +135,22 @@ master_xmap = fish_last_label(joinpaths(path))
 master_xmap.pop("Alignment")
 #
 # load in telomere positions 
-_telomerepos = pd.read_csv(r"C:\Users\Ivan\Desktop\IRB_Folder\TELOMERE\telomerepos.txt",
+_telomerepos = pd.read_csv("telomerepos.txt",
             sep="\t")
 
 _telomerepos["chrom"]=_telomerepos["chrom"].str.replace("chr","").replace({'X': 20, 'Y': 21}).astype(int)
 teloms_right = _telomerepos[_telomerepos["chromStart"]!=0][["chrom","chromStart"]]
 teloms_right.columns = ["RefContigID","TelomerePosition_D"]
 
+
+_teloms_right = _telomerepos[_telomerepos["chromStart"]!=0][["chrom","chromEnd"]]
+_teloms_right.columns = ["RefContigID","TelomerePosition_D"]
+are_same_lens = pd.merge(_teloms_right,master_xmap[["RefContigID","RefLen"]],
+                         left_on="RefContigID",right_on="RefContigID",
+                         how="left")
+
+
+are_same_lens["DELTA"] = are_same_lens.TelomerePosition_D - are_same_lens.RefLen
 
 master_xmap = pd.merge(master_xmap,teloms_right,
                        left_on="RefContigID",right_on="RefContigID",
@@ -151,6 +160,10 @@ GAP_SIZE = 100000
 # what if gap size is 0
 # FORUMA FOR OFFSET THAT IS ADDED TO TELOMRE LEN
 #master_xmap["TelomereLabelOffset2"] = master_xmap["AlignedLabelPosition"] - master_xmap["RefLen"] + GAP_SIZE
+
+
+# R telomeres end position
+
 
 
 
