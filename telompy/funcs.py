@@ -93,7 +93,7 @@ def fish_offset(last_aligned: pd.DataFrame, reference_cmap: pd.DataFrame) -> pd.
                                  right_on="RefContigID",
                                  how="left")
 
-    #aligned_positions["Offset"] = aligned_positions["LastPosition"] - aligned_positions["Position"]
+    # aligned_positions["Offset"] = aligned_positions["LastPosition"] - aligned_positions["Position"]
     aligned_positions["OffsetLabel"] = aligned_positions["LastID"] - aligned_positions["SiteID"]
     return aligned_positions
 
@@ -124,7 +124,7 @@ def fish_last_label(path: str, main_xmap: str = MASTER_XMAP, main_cmapr: str = M
 
     # merge them
     last_aligned = pd.merge(left=last_aligned,
-                            #right=aligned_offsets[["QryContigID", "RefContigID", "Offset", "Offset_Label","AlignedLabelPosition"]],
+                            # right=aligned_offsets[["QryContigID", "RefContigID", "Offset", "Offset_Label","AlignedLabelPosition"]],
                             right=aligned_offsets[["QryContigID", "RefContigID", "OffsetLabel", "AlignedLabelPosition"]],
                             left_on=["QryContigID", "RefContigID"],
                             right_on=["QryContigID", "RefContigID"])
@@ -418,7 +418,7 @@ def calculate_telomere(row: pd.Series, path: str,
     contig_aligned.loc[contig_aligned["Orientation"] == master_orientation,
                        "TelomereLen"] = contig_aligned["QryLen"] - contig_aligned["Position"]  # pylint:disable=C0301
     # correct for the offset
-    #contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen"] - row["Offset"]
+    # contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen"] - row["Offset"]
 
     # reformat and return
     # NOTE: deleted TelomereLenCorr
