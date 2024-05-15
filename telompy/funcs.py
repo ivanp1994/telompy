@@ -125,7 +125,7 @@ def fish_last_label(path: str, main_xmap: str = MASTER_XMAP, main_cmapr: str = M
     # merge them
     last_aligned = pd.merge(left=last_aligned,
                             #right=aligned_offsets[["QryContigID", "RefContigID", "Offset", "Offset_Label","AlignedLabelPosition"]],
-                            right=aligned_offsets[["QryContigID", "RefContigID", "OffsetLabel","AlignedLabelPosition"]],
+                            right=aligned_offsets[["QryContigID", "RefContigID", "OffsetLabel", "AlignedLabelPosition"]],
                             left_on=["QryContigID", "RefContigID"],
                             right_on=["QryContigID", "RefContigID"])
     return last_aligned
@@ -355,7 +355,7 @@ def calculate_telomere(row: pd.Series, path: str,
                        contig_format: str = CONTIG_PATH,
                        querycmap_format: str = QUERYCMAP_PATH,
                        contig_query: str = MASTER_QUERY,
-                       gap_size:Optional[int]=None) -> pd.DataFrame:
+                       gap_size: Optional[int] = None) -> pd.DataFrame:
     """
     Given a row, which is a pandas Series, and path which is the location
     of a BNGO assembly, calculates telomere length.
@@ -423,15 +423,15 @@ def calculate_telomere(row: pd.Series, path: str,
     # reformat and return
     # NOTE: deleted TelomereLenCorr
     contig_aligned = contig_aligned[["QryContigID", "RefContigID", "Orientation",
-                                     "Confidence", "TelomereLen",  "UnpairedMoleculeLabels","QryLen"]]
+                                     "Confidence", "TelomereLen",  "UnpairedMoleculeLabels", "QryLen"]]
     contig_aligned.columns = ["MoleculeID", "QryContigID", "MoleculeOrientation",
-                              "MoleculeConfidence", "TelomereLen",  "UnpairedMoleculeLabels","MoleculeLen"]
+                              "MoleculeConfidence", "TelomereLen",  "UnpairedMoleculeLabels", "MoleculeLen"]
 
     # inserting information
     contig_aligned.insert(0, "RefContigID", row["RefContigID"])
     contig_aligned.insert(4, "ContigOrientation", master_orientation)
-    contig_aligned.insert(5,"AlignedLabelPosition",row["AlignedLabelPosition"])
-    contig_aligned.insert(6,"LastReferencePosition",row["RefEndPos"])
+    contig_aligned.insert(5, "AlignedLabelPosition", row["AlignedLabelPosition"])
+    contig_aligned.insert(6, "LastReferencePosition", row["RefEndPos"])
 
     contig_aligned["UnpairedReferenceLabels"] = row["OffsetLabel"]
     contig_aligned["UnpairedContigLabels"] = get_number_of_unpaired_contig_labels(path=path,
@@ -441,12 +441,11 @@ def calculate_telomere(row: pd.Series, path: str,
                                                                                   contig_query=contig_query
                                                                                   )
 
-    
     # telomere correction via gap size
-    
+
     if gap_size is None:
         gap_size = row["RefLen"] - row["AlignedLabelPosition"]
-    #TODO - do I insert last aligned label position
+    # TODO - do I insert last aligned label position
     offset = row["AlignedLabelPosition"] - row["RefLen"] + gap_size
     contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen"] + offset
 
@@ -464,7 +463,7 @@ def time_function(*args, **kwargs) -> Callable:
 
 def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cmapr: str = MASTER_REFERENCE,
                                contig_format: str = CONTIG_PATH, querycmap_format: str = QUERYCMAP_PATH,
-                               threads: int = 1, gap_size:Optional[int]=None) -> Iterable[pd.DataFrame]:
+                               threads: int = 1, gap_size: Optional[int] = None) -> Iterable[pd.DataFrame]:
     """
     Calculates telomere lengths for a given path to BNGO de novo Assembly and
     returns list of DataFrames
@@ -477,7 +476,7 @@ def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cma
     # main_xmapdf = main_xmapdf.head(1)
 
     frozen_calculation = partial(time_function, path=path, contig_format=contig_format,
-                                 querycmap_format=querycmap_format,gap_size=gap_size)
+                                 querycmap_format=querycmap_format, gap_size=gap_size)
     iterator = (x[1] for x in main_xmapdf.iterrows())
 
     if threads > 1:
@@ -486,12 +485,12 @@ def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cma
     else:
         results = [frozen_calculation(row) for row in iterator]
     return results
-    
-    #todo - pass concat into outer function
+
+    # todo - pass concat into outer function
     # try:
     #     concatenated = pd.concat(results, ignore_index=True)
     # except MemoryError:
     #     concatenated = results
     # return concatenated
-    
-### THE PROBLEM WITH THE ABOVE IS THAT IT PRODUCES
+
+# THE PROBLEM WITH THE ABOVE IS THAT IT PRODUCES
