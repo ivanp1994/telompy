@@ -1,8 +1,11 @@
 #scripts I actively use to test out my data
-#confidence_calculation.py
-#test.py
-#exploting_telomeres.py
+confidence_calculation.py
+test.py
+exploting_telomeres.py
 telomere_lengths/
+Exploting_telomeres.ipynb
+telomerepos.txt
+.ipynb_checkpoints
 .pylint.d/
 
 
