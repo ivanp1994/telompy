@@ -6,6 +6,7 @@ Created on Wed May  8 10:18:14 2024
 """
 
 from .funcs import fish_last_label, calculate_telomere_lengths
-from .cli import command_line_target as cli_start
+from .cli import command_line_target, validate_targets_target
 
-__all__ = ["fish_last_label", "calculate_telomere_lengths", "cli_start"]
+__all__ = ["fish_last_label", "calculate_telomere_lengths", 
+           "command_line_target", "validate_targets_target"]

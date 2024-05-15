@@ -7,6 +7,7 @@ Created on Wed May  8 13:43:03 2024
 
 import os
 import argparse
+from typing import List, Tuple, Dict
 
 import numpy as np
 import pandas as pd
@@ -17,7 +18,7 @@ from .funcs import calculate_telomere_lengths
 from .utils import joinpaths
 
 
-__all__ = ["command_line_target"]
+__all__ = ["command_line_target", "validate_targets_target"]
 
 parser = argparse.ArgumentParser(description="Extract lengths of telomeres from the de novo assembly of BNGO data")
 
@@ -34,7 +35,7 @@ parser.add_argument("-t", "--threads", type=int, default=1,
                     help="Number of threads for parallel extraction")
 
 # OUTPUT FOLDER
-parser.add_argument("-o", "--output", default="telomere_lengths",
+parser.add_argument("-o", "--output", default="telomere_lengths", type=str,
                     help="Output folder for extracted data")
 
 # ARGUMENTS FOR FUTURE-PROOFING
@@ -49,7 +50,7 @@ parser.add_argument("-mr", "--main_cmapr", type=str, default=MASTER_REFERENCE,
                     help="Reconfigure format of query cmap")
 
 
-def target_from_input(args):
+def target_from_input(args: dict):
     "constructs target from -I -N options"
     if args["input"] is None:
         return None
@@ -62,7 +63,7 @@ def target_from_input(args):
     return list(zip(inputs, names))
 
 
-def target_from_config(args):
+def target_from_config(args: dict):
     "constructs target from a given config file"
     if args["conf"] is None:
         return None
@@ -81,7 +82,7 @@ def target_from_config(args):
     return list(zip(conf[0], conf[1]))
 
 
-def redefine_targets(targets):
+def redefine_targets(targets: list) -> list:
     "where no name is provided, take the basename of folder"
 
     for i, (path, name) in enumerate(targets):
@@ -91,7 +92,59 @@ def redefine_targets(targets):
     return targets
 
 
+def validate_targets(targets: list) -> list:
+    "validates targets"
+
+    new_targets = list()
+    for tuple_pair in targets:
+        path, name = tuple_pair
+        if os.path.isfile(path):
+            logger.info("Found file at %s - will name it %s", path, name)
+            new_targets.append(tuple(path, name))
+        else:
+            logger.error("No file at %s - will exclude it from calculation")
+    return new_targets
+
+
+def validate_targets_target() -> Tuple[List[Tuple[str, str]], str, Dict]:
+    "validates target"
+    args = vars(parser.parse_args())
+
+    target_conf = target_from_config(args)
+    target_in = target_from_input(args)
+
+    if target_conf is None and target_in is None:
+        raise ValueError("Must provide input either via --input or via --conf")
+
+    # create targets and validate them
+    targets = target_conf if target_conf is not None else target_in
+    targets = validate_targets(targets)
+
+    # pop output from arguments
+    output_dir = args.pop("output")
+    # pops the argument
+    for _arg in ["conf", "input", "name"]:
+        if _arg in args:
+            del args[_arg]
+
+    return targets, output_dir, args
+
+
 def command_line_target():
+    "main function - target for CLI"
+
+    targets, output_dir, args = validate_targets_target()
+    os.makedirs(output_dir, exist_ok=True)
+    for path, name in targets:
+        logger.info("Calculating telomere length for file found at %s", path)
+        data = calculate_telomere_lengths(path, **args)
+        output_path = joinpaths(output_dir, f"{name}.csv")
+        # TODO - align with output of data
+        pd.concat(data, axis=1).to_csv(output_path)
+        logger.info("Saved telomere lengths at %s", output_path)
+
+
+def command_line_targetO():
     "main function - target for CLI"
     args = vars(parser.parse_args())
 
@@ -111,7 +164,12 @@ def command_line_target():
     os.makedirs(output_dir, exist_ok=True)
     # create targets
     targets = target_conf if target_conf is not None else target_in
+
+    # redefine targets
     targets = redefine_targets(targets)
+
+    # afterwards, validate them
+    #targets = validate_targets(targets)
 
     # iterate through them - no need for multiprocessing
     for path, name in targets:
@@ -121,11 +179,3 @@ def command_line_target():
         # TODO - align with output of data
         pd.concat(data, axis=1).to_csv(output_path)
         logger.info("Saved telomere lengths at %s", output_path)
-
-        """
-        logger.info("Saving telomere lengths in %d fragments", len(data))
-        for idx, df in enumerate(data):
-            output_path = joinpaths(output_dir, f"{name}_{idx+1}.csv")
-            df.to_csv(output_path)
-            logger.info("Saved %d part of %d of file at %s", idx+1, len(data), output_path)
-        """
