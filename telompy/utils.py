@@ -32,7 +32,8 @@ def func_timer(func):
 
 # FUNCTIONS TO NORMALIZE PATH FINDING
 
-#TODO - add absolute path expander
+# TODO - add absolute path expander
+
 
 def windows_normalizer(p):  # pylint:disable=C0103
     "FORWARDSLASH -> BACKSLASH"
