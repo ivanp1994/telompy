@@ -98,11 +98,11 @@ def validate_targets(targets: list) -> list:
     new_targets = list()
     for tuple_pair in targets:
         path, name = tuple_pair
-        if os.path.isfile(path):
+        if os.path.isdir(path):
             logger.info("Found file at %s - will name it %s", path, name)
-            new_targets.append(tuple(path, name))
+            new_targets.append((path, name))
         else:
-            logger.error("No file at %s - will exclude it from calculation")
+            logger.error("No file at %s - will exclude it from calculation",path)
     return new_targets
 
 
@@ -112,7 +112,7 @@ def validate_targets_target() -> Tuple[List[Tuple[str, str]], str, Dict]:
 
     target_conf = target_from_config(args)
     target_in = target_from_input(args)
-
+    print(args)
     if target_conf is None and target_in is None:
         raise ValueError("Must provide input either via --input or via --conf")
 
