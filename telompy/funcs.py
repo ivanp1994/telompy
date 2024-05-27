@@ -4,6 +4,7 @@ Created on Wed May  8 10:11:51 2024
 
 @author: ivanp
 """
+import logging
 from typing import Iterable, Callable, Union, Literal, Optional
 from functools import partial
 from multiprocessing import Pool
@@ -12,9 +13,10 @@ import pandas as pd
 
 from .utils import read_map_file, joinpaths, func_timer
 from .const import CONTIG_PATH, QUERYCMAP_PATH, MASTER_XMAP, MASTER_REFERENCE, MASTER_QUERY
-from .const import LOGGER as logger
 
 
+logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
+logger = logging.getLogger("telompy")
 pd.options.mode.chained_assignment = None  # default='warn'
 
 # %% FUNCTIONS FOR FISHING LAST LABELS ON MASTER ASSEMBLY

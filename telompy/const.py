@@ -4,11 +4,7 @@ Created on Wed May  8 10:19:03 2024
 
 @author: ivanp
 """
-import logging
 
-logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
-
-LOGGER = logging.getLogger("telompy")
 MASTER_XMAP = "output/contigs/annotation/exp_refineFinal1_merged.xmap"
 MASTER_QUERY = "output/contigs/annotation/exp_refineFinal1_merged_q.cmap"
 MASTER_REFERENCE = "output/contigs/annotation/exp_refineFinal1_merged_r.cmap"

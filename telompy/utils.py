@@ -8,9 +8,11 @@ import os
 import time
 import functools
 import platform
-
+import logging
 import pandas as pd
-from .const import LOGGER as logger
+
+logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
+logger = logging.getLogger("telompy")
 
 __all__ = ["func_timer", "joinpaths", "read_map_file"]
 
@@ -31,8 +33,6 @@ def func_timer(func):
     return wrapper_func
 
 # FUNCTIONS TO NORMALIZE PATH FINDING
-
-# TODO - add absolute path expander
 
 
 def windows_normalizer(p):  # pylint:disable=C0103

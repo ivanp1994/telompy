@@ -7,16 +7,19 @@ Created on Wed May  8 13:43:03 2024
 
 import os
 import argparse
+import logging
 from typing import List, Tuple, Dict
 
 import numpy as np
 import pandas as pd
 
-from .const import LOGGER as logger
+
 from .const import CONTIG_PATH, QUERYCMAP_PATH, MASTER_XMAP, MASTER_REFERENCE
 from .funcs import calculate_telomere_lengths
 from .utils import joinpaths
 
+logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
+logger = logging.getLogger("telompy")
 
 __all__ = ["command_line_target", "validate_targets_target"]
 
@@ -95,7 +98,7 @@ def redefine_targets(targets: list) -> list:
     return targets
 
 
-def validate_targets(targets: list) -> list:
+def validate_targets(targets: List[Tuple[str,str]]) -> List[Tuple[str,str]]:
     "validates targets"
 
     new_targets = list()
