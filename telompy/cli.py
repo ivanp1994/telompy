@@ -23,7 +23,8 @@ logger = logging.getLogger("telompy")
 
 __all__ = ["command_line_target", "validate_targets_target"]
 
-parser = argparse.ArgumentParser(description="Extract lengths of telomeres from the de novo assembly of BNGO data")
+parser = argparse.ArgumentParser(
+    description="Extract lengths of telomeres from the de novo assembly of BNGO data")
 
 # POINTERS TO FILES
 parser.add_argument("-i", "--input", type=str, nargs="+", required=False,
@@ -61,7 +62,7 @@ def load_config(conf: pd.DataFrame) -> Union[None, pd.DataFrame]:
         logger.error("Two columns must be in configuration file")
         return None
     conf[1] = conf.apply(
-        lambda row: os.path.basename(row[0]) if pd.isna(row[1]) else row[3],
+        lambda row: os.path.basename(row[0]) if pd.isna(row[1]) else row[1],
         axis=1)
 
 
@@ -77,7 +78,7 @@ def target_from_config(args: Dict[str, str]) -> Union[None, pd.DataFrame]:
     return load_config(conf)
 
 
-def target_from_input(args: Dict[str:str]) -> Union[None, pd.DataFrame]:
+def target_from_input(args: Dict[str,str]) -> Union[None, pd.DataFrame]:
     "constructs target from -I -N options"
     if args["input"] is None:
         return None
@@ -100,7 +101,8 @@ def validate_targets(targets: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
             logger.info("Found file at %s - will name it %s", path, name)
             new_targets.append((path, name))
         else:
-            logger.error("No file at %s - will exclude it from calculation", path)
+            logger.error(
+                "No file at %s - will exclude it from calculation", path)
     return new_targets
 
 
@@ -124,7 +126,8 @@ def command_line_target():
     "main function - target for CLI"
     args = vars(parser.parse_args())
     # arguments for input
-    input_args = {k: v for k, v in args.items() if k in {"input", "name", "conf"}}
+    input_args = {k: v for k, v in args.items() if k in {
+        "input", "name", "conf"}}
 
     # arguments for func
     func_args = {k: v for k, v in args.items() if k in
