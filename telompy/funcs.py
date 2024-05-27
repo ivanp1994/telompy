@@ -472,6 +472,9 @@ def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cma
     # TODO - better documentation
     main_xmapdf = fish_last_label(path, main_xmap, main_cmapr)
 
+    if gap_size is not None:
+        assert type(gap_size) == int
+
     # main_xmapdf = main_xmapdf[main_xmapdf.RefContigID.isin([4,14,20,21])]
     # main_xmapdf = main_xmapdf.head(1)
 
@@ -485,12 +488,3 @@ def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cma
     else:
         results = [frozen_calculation(row) for row in iterator]
     return results
-
-    # todo - pass concat into outer function
-    # try:
-    #     concatenated = pd.concat(results, ignore_index=True)
-    # except MemoryError:
-    #     concatenated = results
-    # return concatenated
-
-# THE PROBLEM WITH THE ABOVE IS THAT IT PRODUCES

@@ -34,6 +34,9 @@ parser.add_argument("-c", "--conf", required=False,
 parser.add_argument("-t", "--threads", type=int, default=1,
                     help="Number of threads for parallel extraction")
 
+parser.add_argument("-gs", "--gap_size", type=int, default=100000,
+                    help="Gap size for calculation of Telomere Offset")
+
 # OUTPUT FOLDER
 parser.add_argument("-o", "--output", default="telomere_lengths", type=str,
                     help="Output folder for extracted data")
@@ -102,7 +105,7 @@ def validate_targets(targets: list) -> list:
             logger.info("Found file at %s - will name it %s", path, name)
             new_targets.append((path, name))
         else:
-            logger.error("No file at %s - will exclude it from calculation",path)
+            logger.error("No file at %s - will exclude it from calculation", path)
     return new_targets
 
 
@@ -140,42 +143,5 @@ def command_line_target():
         data = calculate_telomere_lengths(path, **args)
         output_path = joinpaths(output_dir, f"{name}.csv")
         # TODO - align with output of data
-        pd.concat(data, axis=1).to_csv(output_path)
-        logger.info("Saved telomere lengths at %s", output_path)
-
-
-def command_line_targetO():
-    "main function - target for CLI"
-    args = vars(parser.parse_args())
-
-    target_conf = target_from_config(args)
-    target_in = target_from_input(args)
-
-    output_dir = args.pop("output")
-
-    # pops the argument
-    for _arg in ["conf", "input", "name"]:
-        if _arg in args:
-            del args[_arg]
-
-    if target_conf is None and target_in is None:
-        raise ValueError("Must provide input either via --input or via --conf")
-
-    os.makedirs(output_dir, exist_ok=True)
-    # create targets
-    targets = target_conf if target_conf is not None else target_in
-
-    # redefine targets
-    targets = redefine_targets(targets)
-
-    # afterwards, validate them
-    #targets = validate_targets(targets)
-
-    # iterate through them - no need for multiprocessing
-    for path, name in targets:
-        logger.info("Calculating telomere length for file found at %s", path)
-        data = calculate_telomere_lengths(path, **args)
-        output_path = joinpaths(output_dir, f"{name}.csv")
-        # TODO - align with output of data
-        pd.concat(data, axis=1).to_csv(output_path)
+        pd.concat(data, axis=0).to_csv(output_path)
         logger.info("Saved telomere lengths at %s", output_path)
