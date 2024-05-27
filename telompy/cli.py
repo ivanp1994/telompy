@@ -118,6 +118,10 @@ def validate_targets_target(input_args: Dict[str, str]) -> List[Tuple[str, str]]
 
     # create targets and validate them
     targets = target_conf if target_conf is not None else target_in
+    
+    # converted to tuple
+    targets = [tuple(row) for row in targets.to_records(index=False)] # pylint:disable=E1101
+    
     targets = validate_targets(targets)
 
     return targets
