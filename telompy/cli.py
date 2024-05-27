@@ -64,6 +64,7 @@ def load_config(conf: pd.DataFrame) -> Union[None, pd.DataFrame]:
     conf[1] = conf.apply(
         lambda row: os.path.basename(row[0]) if pd.isna(row[1]) else row[1],
         axis=1)
+    return conf
 
 
 def target_from_config(args: Dict[str, str]) -> Union[None, pd.DataFrame]:
@@ -78,7 +79,7 @@ def target_from_config(args: Dict[str, str]) -> Union[None, pd.DataFrame]:
     return load_config(conf)
 
 
-def target_from_input(args: Dict[str,str]) -> Union[None, pd.DataFrame]:
+def target_from_input(args: Dict[str, str]) -> Union[None, pd.DataFrame]:
     "constructs target from -I -N options"
     if args["input"] is None:
         return None
