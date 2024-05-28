@@ -8,7 +8,7 @@ Created on Wed May  8 13:43:03 2024
 import os
 import argparse
 import logging
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 
 import numpy as np
 import pandas as pd
@@ -23,7 +23,8 @@ logger = logging.getLogger("telompy")
 
 __all__ = ["command_line_target", "validate_targets_target"]
 
-parser = argparse.ArgumentParser(description="Extract lengths of telomeres from the de novo assembly of BNGO data")
+parser = argparse.ArgumentParser(
+    description="Extract lengths of telomeres from the de novo assembly of BNGO data")
 
 # POINTERS TO FILES
 parser.add_argument("-i", "--input", type=str, nargs="+", required=False,
@@ -56,7 +57,29 @@ parser.add_argument("-mr", "--main_cmapr", type=str, default=MASTER_REFERENCE,
                     help="Reconfigure format of query cmap")
 
 
-def target_from_input(args: dict):
+def load_config(conf: pd.DataFrame) -> Union[None, pd.DataFrame]:
+    if conf.shape[1] < 2:
+        logger.error("Two columns must be in configuration file")
+        return None
+    conf[1] = conf.apply(
+        lambda row: os.path.basename(row[0]) if pd.isna(row[1]) else row[1],
+        axis=1)
+    return conf
+
+
+def target_from_config(args: Dict[str, List[str]]) -> Union[None, pd.DataFrame]:
+    "constructs target from a given config file"
+    if args.get("conf", None) is None:
+        return None
+    try:
+        conf = pd.read_csv(args["conf"], header=None)
+    except FileNotFoundError:
+        logger.error("No configuration file found at '%s'", args["conf"])
+        return None
+    return load_config(conf)
+
+
+def target_from_input(args: Dict[str, List[str]]) -> Union[None, pd.DataFrame]:
     "constructs target from -I -N options"
     if args["input"] is None:
         return None
@@ -65,40 +88,13 @@ def target_from_input(args: dict):
     names = args["name"]
     names = list() if names is None else names
     while len(names) < len(inputs):
-        names.append(None)
-    return list(zip(inputs, names))
+        # ignoring this for type hinting
+        # easier to check np.nan
+        names.append(np.nan)  # type: ignore
+    return load_config(pd.DataFrame([inputs, names]).T)
 
 
-def target_from_config(args: dict):
-    "constructs target from a given config file"
-    if args["conf"] is None:
-        return None
-    try:
-        conf = pd.read_csv(args["conf"], header=None)
-    except FileNotFoundError:
-        logger.error("No configuration file found at '%s'", args["conf"])
-        return None
-
-    if conf.shape[1] < 2:
-        logger.error("Two columns must be in configuration file")
-        return None
-    # E1101 (no-member) : Instance of 'TextFileReader' has no 'replace'
-    # this is a false positive
-    conf = conf.replace({np.nan: None})  # pylint: disable=E1101
-    return list(zip(conf[0], conf[1]))
-
-
-def redefine_targets(targets: list) -> list:
-    "where no name is provided, take the basename of folder"
-
-    for i, (path, name) in enumerate(targets):
-        if name is None:
-            base_name = os.path.basename(path)
-            targets[i] = (path, base_name)
-    return targets
-
-
-def validate_targets(targets: List[Tuple[str,str]]) -> List[Tuple[str,str]]:
+def validate_targets(targets: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
     "validates targets"
 
     new_targets = list()
@@ -108,43 +104,50 @@ def validate_targets(targets: List[Tuple[str,str]]) -> List[Tuple[str,str]]:
             logger.info("Found file at %s - will name it %s", path, name)
             new_targets.append((path, name))
         else:
-            logger.error("No file at %s - will exclude it from calculation", path)
+            logger.error(
+                "No file at %s - will exclude it from calculation", path)
     return new_targets
 
 
-def validate_targets_target() -> Tuple[List[Tuple[str, str]], str, Dict]:
+def validate_targets_target(input_args: Dict[str, List[str]]) -> List[Tuple[str, str]]:
     "validates target"
-    args = vars(parser.parse_args())
 
-    target_conf = target_from_config(args)
-    target_in = target_from_input(args)
-    print(args)
+    target_conf = target_from_config(input_args)
+    target_in = target_from_input(input_args)
+
     if target_conf is None and target_in is None:
         raise ValueError("Must provide input either via --input or via --conf")
 
     # create targets and validate them
     targets = target_conf if target_conf is not None else target_in
+
+    # converted to tuple
+    targets = [tuple(row) for row in targets.to_records(index=False)]  # pylint:disable=E1101
+
     targets = validate_targets(targets)
 
-    # pop output from arguments
-    output_dir = args.pop("output")
-    # pops the argument
-    for _arg in ["conf", "input", "name"]:
-        if _arg in args:
-            del args[_arg]
-
-    return targets, output_dir, args
+    return targets
 
 
 def command_line_target():
     "main function - target for CLI"
+    args = vars(parser.parse_args())
+    # arguments for input
+    input_args = {k: v for k, v in args.items() if k in {
+        "input", "name", "conf"}}
 
-    targets, output_dir, args = validate_targets_target()
+    # arguments for func
+    func_args = {k: v for k, v in args.items() if k in
+                 {"gap_size", "contig_format", "main_xmap", "querycmap_format", "main_cmapr"}}
+
+    targets = validate_targets_target(input_args)
+
+    output_dir = args["output"]
     os.makedirs(output_dir, exist_ok=True)
     for path, name in targets:
         logger.info("Calculating telomere length for file found at %s", path)
-        data = calculate_telomere_lengths(path, **args)
+        data = calculate_telomere_lengths(path, **func_args)
         output_path = joinpaths(output_dir, f"{name}.csv")
-        # TODO - align with output of data
-        pd.concat(data, axis=0).to_csv(output_path)
+
+        pd.concat(data, axis=0).to_csv(output_path, index=False)
         logger.info("Saved telomere lengths at %s", output_path)
