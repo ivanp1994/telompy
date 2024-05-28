@@ -67,7 +67,7 @@ def load_config(conf: pd.DataFrame) -> Union[None, pd.DataFrame]:
     return conf
 
 
-def target_from_config(args: Dict[str, str]) -> Union[None, pd.DataFrame]:
+def target_from_config(args: Dict[str, List[str]]) -> Union[None, pd.DataFrame]:
     "constructs target from a given config file"
     if args.get("conf", None) is None:
         return None
@@ -79,7 +79,7 @@ def target_from_config(args: Dict[str, str]) -> Union[None, pd.DataFrame]:
     return load_config(conf)
 
 
-def target_from_input(args: Dict[str, str]) -> Union[None, pd.DataFrame]:
+def target_from_input(args: Dict[str, List[str]]) -> Union[None, pd.DataFrame]:
     "constructs target from -I -N options"
     if args["input"] is None:
         return None
@@ -88,7 +88,9 @@ def target_from_input(args: Dict[str, str]) -> Union[None, pd.DataFrame]:
     names = args["name"]
     names = list() if names is None else names
     while len(names) < len(inputs):
-        names.append(np.nan)
+        # ignoring this for type hinting
+        # easier to check np.nan
+        names.append(np.nan)  # type: ignore
     return load_config(pd.DataFrame([inputs, names]).T)
 
 
@@ -107,7 +109,7 @@ def validate_targets(targets: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
     return new_targets
 
 
-def validate_targets_target(input_args: Dict[str, str]) -> List[Tuple[str, str]]:
+def validate_targets_target(input_args: Dict[str, List[str]]) -> List[Tuple[str, str]]:
     "validates target"
 
     target_conf = target_from_config(input_args)
@@ -118,10 +120,10 @@ def validate_targets_target(input_args: Dict[str, str]) -> List[Tuple[str, str]]
 
     # create targets and validate them
     targets = target_conf if target_conf is not None else target_in
-    
+
     # converted to tuple
-    targets = [tuple(row) for row in targets.to_records(index=False)] # pylint:disable=E1101
-    
+    targets = [tuple(row) for row in targets.to_records(index=False)]  # pylint:disable=E1101
+
     targets = validate_targets(targets)
 
     return targets
