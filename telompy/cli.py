@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 
-from .const import CONTIG_PATH, QUERYCMAP_PATH, MASTER_XMAP, MASTER_REFERENCE
+from .const import CONTIG_PATH, QUERYCMAP_PATH, MASTER_XMAP, MASTER_REFERENCE, MASTER_QUERY, REF_TOL, CON_TOL, MOL_TOL
 from .funcs import calculate_telomere_lengths
 from .utils import joinpaths
 
@@ -38,23 +38,33 @@ parser.add_argument("-c", "--conf", required=False,
 parser.add_argument("-t", "--threads", type=int, default=1,
                     help="Number of threads for parallel extraction")
 
+# FUNCTIONAL ARGUMENTS
 parser.add_argument("-gs", "--gap_size", type=int, default=100000,
                     help="Gap size for calculation of Telomere Offset")
+
+parser.add_argument("-rt", "--ref_tol", type=int, default=REF_TOL,
+                    help="Maximum number of unpaired labels on reference (AFTER LAST PAIR)")
+
+parser.add_argument("-ct", "--con_tol", type=int, default=CON_TOL,
+                    help="Maximum number of unpaired labels on contig (AFTER LAST PAIR)")
+parser.add_argument("-mt", "--mol_tol", type=int, default=MOL_TOL,
+                    help="Maximum number of unpaired labels on molecule (AFTER LAST PAIR)")
 
 # OUTPUT FOLDER
 parser.add_argument("-o", "--output", default="telomere_lengths", type=str,
                     help="Output folder for extracted data")
 
 # ARGUMENTS FOR FUTURE-PROOFING
-parser.add_argument("-ct", "--contig_format", type=str, default=CONTIG_PATH,
+parser.add_argument("-cf", "--contig_format", type=str, default=CONTIG_PATH,
                     help="Reconfigure contig path")
 parser.add_argument("-mx", "--main_xmap", type=str, default=MASTER_XMAP,
                     help="Reconfigure master xmap")
-parser.add_argument("-cq", "--querycmap_format", type=str, default=QUERYCMAP_PATH,
+parser.add_argument("-qc", "--querycmap_format", type=str, default=QUERYCMAP_PATH,
                     help="Reconfigure format of query cmap")
-
 parser.add_argument("-mr", "--main_cmapr", type=str, default=MASTER_REFERENCE,
                     help="Reconfigure format of query cmap")
+parser.add_argument("-cq", "--contig_query", type=str, default=MASTER_QUERY,
+                    help="Reconfigure format of contig as a query")
 
 
 def load_config(conf: pd.DataFrame) -> Union[None, pd.DataFrame]:
@@ -138,16 +148,18 @@ def command_line_target():
 
     # arguments for func
     func_args = {k: v for k, v in args.items() if k in
-                 {"gap_size", "contig_format", "main_xmap", "querycmap_format", "main_cmapr"}}
+                 {"gap_size", "contig_format", "main_xmap", "querycmap_format", "main_cmapr",
+                  "ref_tol", "con_tol", "mol_tol"}}
 
     targets = validate_targets_target(input_args)
 
     output_dir = args["output"]
     os.makedirs(output_dir, exist_ok=True)
     for path, name in targets:
-        logger.info("Calculating telomere length for file found at %s", path)
+
         data = calculate_telomere_lengths(path, **func_args)
         output_path = joinpaths(output_dir, f"{name}.csv")
 
-        pd.concat(data, axis=0).to_csv(output_path, index=False)
+        # pd.concat(data, axis=0).to_csv(output_path, index=False)
+        data.to_csv(output_path, index=False)
         logger.info("Saved telomere lengths at %s", output_path)

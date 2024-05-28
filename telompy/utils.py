@@ -27,7 +27,7 @@ def func_timer(func):
         delta = time_e - time_s
 
         # logger.info(f"'Operation done in {delta:.4f} seconds")
-        logger.info("Operation done in %.2f seconds", delta)
+        logger.debug("Operation done in %.2f seconds", delta)
 
         return func_result
     return wrapper_func

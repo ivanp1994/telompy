@@ -4,6 +4,7 @@ Created on Wed May  8 10:11:51 2024
 
 @author: ivanp
 """
+import os
 import logging
 from typing import Iterable, Callable, Union, Literal, Optional
 from functools import partial
@@ -12,7 +13,7 @@ from multiprocessing import Pool
 import pandas as pd
 
 from .utils import read_map_file, joinpaths, func_timer
-from .const import CONTIG_PATH, QUERYCMAP_PATH, MASTER_XMAP, MASTER_REFERENCE, MASTER_QUERY
+from .const import CONTIG_PATH, QUERYCMAP_PATH, MASTER_XMAP, MASTER_REFERENCE, MASTER_QUERY, REF_TOL, CON_TOL, MOL_TOL
 
 
 logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
@@ -382,6 +383,7 @@ def calculate_telomere(row: pd.Series, path: str,
 
 
     """
+    # %%
     # TODO -- add formula
     # TODO - better documentation
     # ROW UNPACKING
@@ -390,8 +392,8 @@ def calculate_telomere(row: pd.Series, path: str,
     master_contig = row["QryContigID"]
     contig_alignment = row["Alignment"]
 
-    logger.info("Processing telomeres mapped to RefContigID %d from QryContigID %d",
-                row["RefContigID"], row["QryContigID"])
+    logger.debug("Processing telomeres mapped to RefContigID %d from QryContigID %d",
+                 row["RefContigID"], row["QryContigID"])
 
     # READING CONTIG PATHS
     contig_path = joinpaths(path, contig_format.format(x=master_contig))
@@ -474,10 +476,13 @@ def time_function(*args, **kwargs) -> Callable:
     "timing telomere calculation, adjusting decorating for multiprocessing"
     return func_timer(calculate_telomere)(*args, **kwargs)
 
+# %%
 
-def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cmapr: str = MASTER_REFERENCE,
-                               contig_format: str = CONTIG_PATH, querycmap_format: str = QUERYCMAP_PATH,
-                               threads: int = 1, gap_size: Optional[int] = None) -> Iterable[pd.DataFrame]:
+
+def _calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cmapr: str = MASTER_REFERENCE,
+                                contig_format: str = CONTIG_PATH, querycmap_format: str = QUERYCMAP_PATH,
+                                contig_query: str = MASTER_QUERY, threads: int = 1,
+                                gap_size: Optional[int] = None) -> pd.DataFrame:
     """
     Calculates telomere lengths for a given path to BNGO de novo Assembly and
     returns list of DataFrames
@@ -493,7 +498,7 @@ def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cma
     # main_xmapdf = main_xmapdf.head(1)
 
     frozen_calculation = partial(time_function, path=path, contig_format=contig_format,
-                                 querycmap_format=querycmap_format, gap_size=gap_size)
+                                 querycmap_format=querycmap_format, gap_size=gap_size, contig_query=contig_query)
     iterator = (x[1] for x in main_xmapdf.iterrows())
 
     if threads > 1:
@@ -502,3 +507,68 @@ def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cma
     else:
         results = [frozen_calculation(row) for row in iterator]
     return results
+
+
+def reduce_dataset(data: pd.DataFrame, ref_tol: int,
+                   con_tol: int, mol_tol: int) -> pd.DataFrame:
+    """
+    Reduces our dataset based on the numbers provided.
+    For every alignment we have the following three statistics:
+        UnpairedReferenceLabels
+        UnpairedContigLabels
+        UnpairedMoleculeLabels
+    Our alignment is MOLECULE to CONTIG to REFERENCE and this alignment
+    doesn't have to be perfect. For example, we can align the penultimate
+    label of the CONTIG to last label of REFERENCE.
+
+    These three statistics tell us how many labels are after the last aligned
+    pair. Depending on your level of tolerance, this can vary.
+
+    For example, passing 'ref_tol'=1 means that you tolerate one extra label
+    after the last paired label on the reference.
+    See recommended values in .const.
+    """
+
+    input_df = data.copy()
+
+    original_len = len(data)
+    len_input_df = original_len
+    cols = ["UnpairedReferenceLabels", "UnpairedContigLabels", "UnpairedMoleculeLabels"]
+    for name, tol in zip(cols, [ref_tol, con_tol, mol_tol]):
+        input_df = input_df.loc[input_df[name] <= tol]
+        len_new = len(input_df)
+        logger.info("Excluded %s <= %d from input_df - went from %d to %d molecules (%.2f percent reduction)",
+                    name, tol, len_input_df, len_new, 100 - len_new/len_input_df*100)
+        len_input_df = len_new
+
+    logger.info("Went from %d to %d molecules (%.2f percent reduction)",
+                original_len, len_new, 100 - len_new/original_len*100
+                )
+    return input_df
+
+
+def calculate_telomere_lengths(path: str, main_xmap: str = MASTER_XMAP, main_cmapr: str = MASTER_REFERENCE,
+                               contig_format: str = CONTIG_PATH, querycmap_format: str = QUERYCMAP_PATH,
+                               contig_query: str = MASTER_QUERY, threads: int = 1,
+                               gap_size: Optional[int] = None,
+                               ref_tol: int = REF_TOL, con_tol: int = CON_TOL, mol_tol: int = MOL_TOL):
+
+    logger.info("Calculating telomere length for file found at %s", path)
+
+    data = _calculate_telomere_lengths(path=path, main_xmap=main_xmap, main_cmapr=main_cmapr,
+                                       contig_format=contig_format, querycmap_format=querycmap_format,
+                                       contig_query=contig_query, threads=threads,
+                                       gap_size=gap_size)
+
+    data = pd.concat(data, axis=0, ignore_index=True)
+
+    # display statistics about unpaired labels
+    _cols = ["RefContigID", "QryContigID", "UnpairedReferenceLabels", "UnpairedContigLabels"]
+    stats_df = data[_cols].drop_duplicates()
+    name = os.path.basename(path)
+    for _, row in stats_df.iterrows():
+        display = ' , '.join([f"{index} : {value}" for index, value in row.items()])
+        logger.info("%s - LABEL_STATS - %s", name, display)
+
+    # reduce data
+    return reduce_dataset(data, ref_tol=ref_tol, con_tol=con_tol, mol_tol=mol_tol)
