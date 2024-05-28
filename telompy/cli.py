@@ -4,7 +4,7 @@ Created on Wed May  8 13:43:03 2024
 
 @author: ivanp
 """
-# TODO - test branch on the Padobran
+
 import os
 import argparse
 import logging
@@ -149,5 +149,5 @@ def command_line_target():
         data = calculate_telomere_lengths(path, **func_args)
         output_path = joinpaths(output_dir, f"{name}.csv")
 
-        pd.concat(data, axis=0).to_csv(output_path)
+        pd.concat(data, axis=0).to_csv(output_path, index=False)
         logger.info("Saved telomere lengths at %s", output_path)

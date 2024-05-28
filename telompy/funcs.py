@@ -451,11 +451,23 @@ def calculate_telomere(row: pd.Series, path: str,
     offset = row["AlignedLabelPosition"] - row["RefLen"] + gap_size
     contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen"] + offset
 
-    # a vain attempt to decrease memory usage by casting length to an integer
-    contig_aligned["TelomereLen"] = contig_aligned["TelomereLen"].astype(int)
-    contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen_corr"].astype(int)
+    # remaping orientations to integer
+    contig_aligned["ContigOrientation"] = contig_aligned["ContigOrientation"].replace({"+": 1, "-": -1})
+    contig_aligned["MoleculeOrientation"] = contig_aligned["MoleculeOrientation"].replace({"+": 1, "-": -1})
 
-    return contig_aligned
+    # a vain attempt to decrease memory usage by casting length to an integer
+    # contig_aligned["TelomereLen"] = contig_aligned["TelomereLen"].astype(int)
+    # contig_aligned["TelomereLen_corr"] = contig_aligned["TelomereLen_corr"].astype(int)
+
+    # reordering
+    columns = ["RefContigID", "MoleculeID",  "QryContigID",
+               "MoleculeOrientation", "ContigOrientation", "MoleculeConfidence",
+               "AlignedLabelPosition", "LastReferencePosition",
+               "UnpairedReferenceLabels", "UnpairedContigLabels", "UnpairedMoleculeLabels",
+               "MoleculeLen", "TelomereLen", "TelomereLen_corr"
+               ]
+
+    return contig_aligned[columns]
 
 
 def time_function(*args, **kwargs) -> Callable:
