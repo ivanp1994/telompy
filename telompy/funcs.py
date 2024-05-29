@@ -51,7 +51,8 @@ def fish_starting_aligned_label(xmap_df: pd.DataFrame,
         idx = 0
     if how == "right":
         idx = -1
-    aligned["SiteID"] = aligned["Alignment"].str[1:-1].str.split(")(", regex=False).str[idx]
+    aligned["SiteID"] = aligned["Alignment"].str[1:-
+                                                 1].str.split(")(", regex=False).str[idx]
 
     # get the first element of the pair - corresponding to the label on the reference
     aligned["SiteID"] = aligned["SiteID"].str.split(",").str[0].astype(int)
@@ -59,9 +60,11 @@ def fish_starting_aligned_label(xmap_df: pd.DataFrame,
     # now grouping by chromosomes find the first (smallest) label
     # or the last (largest) label
     if how == "left":
-        aligned = aligned.groupby("RefContigID").apply(lambda one_chrom: one_chrom[one_chrom["SiteID"] == one_chrom["SiteID"].min()])
+        aligned = aligned.groupby("RefContigID").apply(
+            lambda one_chrom: one_chrom[one_chrom["SiteID"] == one_chrom["SiteID"].min()])
     if how == "right":
-        aligned = aligned.groupby("RefContigID").apply(lambda one_chrom: one_chrom[one_chrom["SiteID"] == one_chrom["SiteID"].max()])
+        aligned = aligned.groupby("RefContigID").apply(
+            lambda one_chrom: one_chrom[one_chrom["SiteID"] == one_chrom["SiteID"].max()])
     return aligned.reset_index(drop=True)
 
 
@@ -74,19 +77,24 @@ def fish_offsets(aligned: pd.DataFrame, reference_cmap: pd.DataFrame, how: Liter
     the first/last aligned label on the reference in the number of labels.
 
     """
-    aligned_positions = aligned[["RefContigID", "SiteID", "QryContigID"]].drop_duplicates()
+    aligned_positions = aligned[["RefContigID",
+                                 "SiteID", "QryContigID"]].drop_duplicates()
     aligned_positions = pd.merge(left=aligned_positions,
-                                 right=reference_cmap[["CMapId", "SiteID", "Position"]],
+                                 right=reference_cmap[[
+                                     "CMapId", "SiteID", "Position"]],
                                  left_on=["RefContigID", "SiteID"],
                                  right_on=["CMapId", "SiteID"],
                                  )[["RefContigID", "QryContigID", "SiteID", "Position"]]
 
     if how == "left":
-        labels = reference_cmap[reference_cmap.SiteID == 1][["CMapId", "SiteID", "Position"]]
+        labels = reference_cmap[reference_cmap.SiteID ==
+                                1][["CMapId", "SiteID", "Position"]]
     if how == "right":
-        labels = reference_cmap[reference_cmap.SiteID == reference_cmap.NumSites][["CMapId", "SiteID", "Position"]]
+        labels = reference_cmap[reference_cmap.SiteID == reference_cmap.NumSites][[
+            "CMapId", "SiteID", "Position"]]
 
-    labels.columns = ["RefContigID", "FirstID", "BoundReferencePosition"]  # <-here
+    labels.columns = ["RefContigID", "FirstID",
+                      "BoundReferencePosition"]  # <-here
 
     # merge the two
     aligned_positions = pd.merge(left=aligned_positions,
@@ -95,7 +103,8 @@ def fish_offsets(aligned: pd.DataFrame, reference_cmap: pd.DataFrame, how: Liter
                                  right_on="RefContigID",
                                  how="left")
 
-    aligned_positions["OffsetLabel"] = abs(aligned_positions["SiteID"] - aligned_positions["FirstID"])
+    aligned_positions["OffsetLabel"] = abs(
+        aligned_positions["SiteID"] - aligned_positions["FirstID"])
     return aligned_positions
 
 
@@ -131,7 +140,8 @@ def fish_paired_label(path: str, how: Literal["left", "right"],
 
     # merge them
     aligned_pair = pd.merge(left=aligned_pair,
-                            right=aligned_offsets[["QryContigID", "RefContigID", "OffsetLabel", "BoundReferencePosition"]],
+                            right=aligned_offsets[[
+                                "QryContigID", "RefContigID", "OffsetLabel", "BoundReferencePosition"]],
                             left_on=["QryContigID", "RefContigID"],
                             right_on=["QryContigID", "RefContigID"])
     aligned_pair["TelomereArm"] = how
@@ -258,21 +268,26 @@ def get_number_of_unpaired_contig_labels(path: Union[str, pd.DataFrame], alignme
 
     # if mult is negative, we must find N where N is the number of labels
     if isinstance(path, str):
-        _cmap_contig_ref = read_molecules_cmap(joinpaths(path, contig_query), [qrycontigid])
+        _cmap_contig_ref = read_molecules_cmap(
+            joinpaths(path, contig_query), [qrycontigid])
 
     # if the path is an already loaded CMAP
     elif isinstance(path, pd.DataFrame):
         _cmap_contig_ref = path[path.CMapId == qrycontigid]
     else:
-        logger.error("Something went wrong in reading molecules, recheck BNGO folder")
-        raise KeyError("Something went wrong in reading molecules, recheck BNGO folder")
+        logger.error(
+            "Something went wrong in reading molecules, recheck BNGO folder")
+        raise KeyError(
+            "Something went wrong in reading molecules, recheck BNGO folder")
 
     if mult == -1:
         # SiteID always contains one more label which is the end of contig
         last_label = _cmap_contig_ref["SiteID"].max()-1
         return last_label - last_label_query
-    logger.error("Something went wrong in reading molecules, recheck BNGO folder")
-    raise KeyError("Something went wrong in reading molecules, recheck BNGO folder")
+    logger.error(
+        "Something went wrong in reading molecules, recheck BNGO folder")
+    raise KeyError(
+        "Something went wrong in reading molecules, recheck BNGO folder")
 
 
 def _gnoucl(subrow: pd.Series, molecules: pd.DataFrame, telarm: Literal["left", "right"],
@@ -353,7 +368,8 @@ def read_molecules_cmap(molecules_path: str, molecule_ids: Optional[Iterable[int
     molecules = read_map_file(molecules_path)
     if molecule_ids is not None:
         # E1101 is a false positive
-        molecules = molecules.loc[molecules.CMapId.isin(molecule_ids)]  # pylint:disable=E1101
+        molecules = molecules.loc[molecules.CMapId.isin(
+            molecule_ids)]  # pylint:disable=E1101
     return molecules[["CMapId", "SiteID", "Position"]]
 
 
@@ -380,7 +396,8 @@ def remap_query_position(contig_aligned: pd.DataFrame, molecules: pd.DataFrame, 
         for - it's QryStartPos
     """
     # finds the query pair of given reference label
-    contig_aligned["LastLabelPair"] = extract_reference_query_pair(contig_aligned, aligned_label)
+    contig_aligned["LastLabelPair"] = extract_reference_query_pair(
+        contig_aligned, aligned_label)
 
     # merges information on from molecules
     # drops extraneous info - CMapId, SiteID and LastLabelPair
@@ -480,17 +497,20 @@ def calculate_telomere(row: pd.Series, path: str,
 
     # pathings of contig XMAP and contig as _q.cmap
     contig_path: str = joinpaths(path, contig_format.format(x=master_contig))
-    molecules_path: str = joinpaths(path, querycmap_format.format(x=master_contig))
+    molecules_path: str = joinpaths(
+        path, querycmap_format.format(x=master_contig))
 
     # get the label of bount reference
-    aligned_label: int = get_first_query_bound_reference(contig_alignment, telarm)
+    aligned_label: int = get_first_query_bound_reference(
+        contig_alignment, telarm)
 
     # reads only those alignments that contain query label
     # on the reference
     contig_aligned: pd.DataFrame = read_contig_xmap(contig_path, aligned_label)
 
     # reads molecules found in alignment to the last reference
-    molecules: pd.DataFrame = read_molecules_cmap(molecules_path, contig_aligned.QryContigID.unique())
+    molecules: pd.DataFrame = read_molecules_cmap(
+        molecules_path, contig_aligned.QryContigID.unique())
 
     # Given a label onto the reference, we want to find its pair on the query.
     # For example, if we have an Alignment of:
@@ -500,7 +520,8 @@ def calculate_telomere(row: pd.Series, path: str,
         r"\((%d),(\d+)\)" % aligned_label)[1].astype(str)
 
     # we then format it as a pair (3,17)
-    contig_aligned["RefContigMolPair"] = f"({aligned_label},"+contig_aligned["RefContigMolPair"] + ")"
+    contig_aligned["RefContigMolPair"] = f"({aligned_label}," + \
+        contig_aligned["RefContigMolPair"] + ")"
 
     # we extract unpaired labels
     contig_aligned["UnpairedReferenceLabels"] = row["OffsetLabel"]
@@ -516,10 +537,12 @@ def calculate_telomere(row: pd.Series, path: str,
 
     # calculate telomeres
     # first remap position
-    contig_aligned = remap_query_position(contig_aligned, molecules, aligned_label)
+    contig_aligned = remap_query_position(
+        contig_aligned, molecules, aligned_label)
 
     # then perform formula
-    contig_aligned["TelomereLen"] = contig_aligned.apply(calculate_telomere_length_formula, axis=1, telarm=telarm)
+    contig_aligned["TelomereLen"] = contig_aligned.apply(
+        calculate_telomere_length_formula, axis=1, telarm=telarm)
 
     # refactor contig for easier data insertion
     contig_aligned = contig_aligned[["QryContigID", "RefContigID", "Orientation", "Confidence",
@@ -544,8 +567,10 @@ def calculate_telomere(row: pd.Series, path: str,
         contig_aligned["EndDistance"] = row["RefLen"] - row["RefEndPos"]
 
     contig_aligned["Telomere"] = telarm
-    contig_aligned["ContigOrientation"] = contig_aligned["ContigOrientation"].replace({"+": 1, "-": -1})
-    contig_aligned["MoleculeOrientation"] = contig_aligned["MoleculeOrientation"].replace({"+": 1, "-": -1})
+    contig_aligned["ContigOrientation"] = contig_aligned["ContigOrientation"].replace({
+                                                                                      "+": 1, "-": -1})
+    contig_aligned["MoleculeOrientation"] = contig_aligned["MoleculeOrientation"].replace({
+                                                                                          "+": 1, "-": -1})
     # reorder columns
     columns = ["RefContigID", "MoleculeID",  "QryContigID",
                "MoleculeOrientation", "ContigOrientation", "MoleculeConfidence",
@@ -624,12 +649,13 @@ def reduce_dataset(data: pd.DataFrame, ref_tol: int,
     original_len = len(data)
     len_input_df = original_len
 
-    cols = ["EndDistance", "UnpairedReferenceLabels", "UnpairedContigLabels", "UnpairedMoleculeLabels"]
+    cols = ["EndDistance", "UnpairedReferenceLabels",
+            "UnpairedContigLabels", "UnpairedMoleculeLabels"]
     for name, tol in zip(cols, [dis_tol, ref_tol, con_tol, mol_tol]):
         input_df = input_df.loc[input_df[name] <= tol]
         len_new = len(input_df)
 
-        logger.info("Excluded %s <= %d from input_df - went from %d to %d molecules (%.2f percent reduction)",
+        logger.info("Excluded %s > %d from input_df - went from %d to %d molecules (%.2f percent reduction)",
                     name, tol, len_input_df, len_new, 100 - len_new/len_input_df*100)
         len_input_df = len_new
 
@@ -658,7 +684,7 @@ def calculate_telomere_lengths(path: str,
     for option in how:
 
         logger.info("Calculating telomere lengths for %s arm ", option.upper())
-        # continue #TODO comment this
+
         data = _calculate_telomere_lengths(path=path, how=option,
                                            main_xmap=main_xmap, main_cmapr=main_cmapr,
                                            contig_format=contig_format, querycmap_format=querycmap_format,
@@ -668,15 +694,18 @@ def calculate_telomere_lengths(path: str,
         data = pd.concat(data, axis=0, ignore_index=True)
 
         # display statistics about unpaired labels
-        _cols = ["RefContigID", "QryContigID", "UnpairedReferenceLabels", "UnpairedContigLabels"]
+        _cols = ["RefContigID", "QryContigID", "UnpairedReferenceLabels",
+                 "UnpairedContigLabels", "EndDistance"]
         stats_df = data[_cols].drop_duplicates()
         name = os.path.basename(path)
         for _, row in stats_df.iterrows():
-            display = ' , '.join([f"{index} : {value}" for index, value in row.items()])
+            display = ' , '.join(
+                [f"{index} : {value:.0f}" for index, value in row.items()])
             logger.info("%s - LABEL_STATS - %s", name, display)
-        filtered_dataset = reduce_dataset(data, ref_tol=ref_tol, con_tol=con_tol, mol_tol=mol_tol, dis_tol=dis_tol)
+        filtered_dataset = reduce_dataset(
+            data, ref_tol=ref_tol, con_tol=con_tol, mol_tol=mol_tol, dis_tol=dis_tol)
         final_result.append(filtered_dataset)
-    # return None # TODO comment this
+
     if len(final_result) > 1:
         final_result = pd.concat(final_result, ignore_index=True)
     else:
