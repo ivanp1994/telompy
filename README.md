@@ -78,13 +78,16 @@ Similar problems can occur for a reference - if the **last/first aligned** label
 To control for this, we implement a few key filters elucidated in *Additional parameters for filtering*. 
 
 Recapped, those are related to the maximum number of labels on reference/contig/molecule before/after the first/last **aligned** pair of molecule-contig-reference.
+Note the bolded part - if you have e.g. 3 extra labels on the contig that do not align to the reference, and have 15 extra labels on the molecule that do not align to the reference, but 3 of those actually align to the contig,
+we are still counting 15 extra labels.
+
 One problem that can also occur:
 
 **ADD IMAGE**
 
 In here, our first label is found good 3 million bases after the chromosome start. The first strech of the reference is unlabeled.
 We cannot reasonably call this a telomere - and to that extend we define the maximum distance between the first/last **aligned** label on the reference and the end of the chromosome it's on.
-
+So an additional parameter `dis_tol` is set. 
 
 
 
@@ -111,6 +114,7 @@ output/
 `XMAP` (*cross*-map) files represent an alignment file (equivalent to a `BAM` or `SAM` file) between a query and a reference.
 Reference must be in `CMAP` (*consensus*-map) format, while the query can either be in `BNX` or `CMAP` format.
 The reference query in `BNX` format is found as `autoNoise1_rescaled.bnx`, but we utilize reference queries in the `CMAP` format found either as `exp_refineFinal1_merged_q.cmap` or ˛`EXP_REFINEFINAL1_contig{x}_q.cmap`.
+(If one wants to use alternative optical map assembly tools, such as [FaNDOM](https://github.com/jluebeck/FaNDOM) the (processed) molecules are given in `autoNoise1_rescaled.bnx` and the reference is given in `exp_refineFinal1_merged_q.cmap`)
 
 The BNGO assembly is done in two parts:
 First a *de novo* assembly of contigs from molecules where molecules are assembled into N contigs of specific IDs. The contigs are found in the folder `refine1_ExperimentLabel` in the three forms:
@@ -127,4 +131,3 @@ The second step is to align contigs to the reference. The files are found in a f
 Since optical mapping by BNGO can easily achieve chromosome-level coverage, we will refer to the first step as "molecule-to-contig" and the second step as "contig-to-chromosome" alignment.
 All locations of relevant files are specified in `const.py` for (relative) future-proofing should BNGO deem a change in the structure is necessary.
 
-# Steps to calculate (relative) telomere length
