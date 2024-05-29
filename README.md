@@ -4,9 +4,9 @@ The primary input for `telompy` is a folder with BNGO assembly which is download
 
 There are two ways to input the BNGO folder:
 
- - 1 via `--conf`/`-c` parameter which takes a `CSV` (no column names!) file of two columns (second one can be empty) where first column contains paths to BNGO *de novo* assembly folders and the second column contains how the telomere lengths will be saved.
+ - via `--conf`/`-c` parameter which takes a `CSV` (no column names!) file of two columns (second one can be empty) where first column contains paths to BNGO *de novo* assembly folders and the second column contains how the telomere lengths will be saved.
 
-- 2 via `--input`/`-i` and `--name`/`-n` parameters where the first is a white-space delimited list of paths to BNGO *de novo* assembly folders and the is a white-space delimited list of how telomere lengths will be saved.
+- via `--input`/`-i` and `--name`/`-n` parameters where the first is a white-space delimited list of paths to BNGO *de novo* assembly folders and the is a white-space delimited list of how telomere lengths will be saved.
 
 The output where telomeres will be saved are specified via `--output`/`-o` folder. Telomeres will be saved as `CSV` files in said folder. If there is no `--name`/`-n` parameter or `--conf`/`-c`'s second column is empty (or some elements are empty), then the telomeres will be saved as the base-name of said folder.
 
@@ -31,12 +31,61 @@ There are five additional parameters that are used to filter out the data (for d
 
 `--mol_tol`/`-mt` - Maximum number of unpaired labels on the molecule (chromosome) after/before the last aligned pair
 
-`--dis_tol`/`-dt` - Maximum distance between the first/last aligned label on the reference and the reference length.
-TODO: implement dis_tol in cli.py.
+`--dis_tol`/`-dt` - Maximum distance between the first/last aligned label on the reference and the end of a chromosome (in nucleotide base pairs).
+
 
 ## Additional parameters for future proofing
 These parameters can be changed via CLI, but are also found in `const.py`, and relate to the organizational structure of BNGO folder.
 TODO: dont really want to bother with this
+
+
+# Theory of operation
+
+We aim to provide a relatively sensible way to determine the telomere lengths. 
+
+Telomeres are repetitive nucleotide sequences associated with specialized proteins at the ends of linear chromosomes commonly found in eukaryotes.
+Optical mapping, as implemented by Bionano Genomics (BNGO) is a technique that involves marking high molecular weight (HMW) DNA on specific motifs, and then 
+assembling a complete map of an organism from the patterns of said marking.
+
+First off, we actually cannot determine *absolute* telomere length. Telomeres are repetitive sequences, and specific motifs recognized by BNGO enzymes cannot mark a telomere.
+What we can do, is determine the end point after (for the right end of  thechromosome) or before (for the left end of the chromosome) the last or the first label on the reference.
+Visualized below:
+**ADD IMAGE**
+
+We can call this *relative* telomere length.
+The procedure is simple - we find the bound label (last label for the right, and first label for the left) on the reference, we find its pair on the individual molecule,
+and then (depending on the orientation of the assembly), the *relative* telomere length is the part of the individual molecule *after* or *before* said pair.
+
+The procedure is made more complicated by the way BNGO assembles and maps. In the first round, the individual molecules are assembled into contigs.
+In the second round, the assembled contigs are aligned to the reference (or de novo assembled if no reference is given). This gives two distinct views:
+
+  1) Molecules to contigs
+  2) Contigs to reference
+
+So in order to find molecules mapped to reference, we must *overlay* these two views to get "molecules-to-reference".
+One problem that can occur is related to high coverage (and therefore a huge amount of individual molecules needed),
+the reason why high coverage of optical mapping is necessary (large amounts of false positives) and possible mutations in individual molecules
+that can plop a label where there should be none.
+
+For example:
+**ADD IMAGE**
+
+In the above image, there is a label on contig (marked yellow) that is not paired to the label of reference - the penultimate label on the contig maps
+to the last label on the reference. What happened here is that out of a bunch of molecules that assembled said contig, a sufficient number of molecules had
+one extra label - a mutation or a false positive (an enzyme labeled a place it shouldn't have) happened on - so our contig got one extra label that does not fit in the reference.
+
+Similar problems can occur for a reference - if the **last/first aligned** label on the reference is not the **last/first** label on the reference, we cannot call this a *relative* telomere, let alone a telomere.
+To control for this, we implement a few key filters elucidated in *Additional parameters for filtering*. 
+
+Recapped, those are related to the maximum number of labels on reference/contig/molecule before/after the first/last **aligned** pair of molecule-contig-reference.
+One problem that can also occur:
+
+**ADD IMAGE**
+
+In here, our first label is found good 3 million bases after the chromosome start. The first strech of the reference is unlabeled.
+We cannot reasonably call this a telomere - and to that extend we define the maximum distance between the first/last **aligned** label on the reference and the end of the chromosome it's on.
+
+
 
 
 
