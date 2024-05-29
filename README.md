@@ -1,5 +1,5 @@
 # TeOMPy usage for BNGO data
-## Input and output
+## Input and output parameters
 The primary input for `telompy` is a folder with BNGO assembly which is downloaded either from Bionano Access or is the output of Bionano Solve. The structure of said folder (and relevant files) are elucidated in *Structure of BNGO de novo assembly*.
 
 There are two ways to input the BNGO folder:
@@ -36,8 +36,15 @@ There are five additional parameters that are used to filter out the data (for d
 
 ## Additional parameters for future proofing
 These parameters can be changed via CLI, but are also found in `const.py`, and relate to the organizational structure of BNGO folder.
-TODO: dont really want to bother with this
+TODO: EXPLAIN AFTER REFORMATTING
 
+## Installation and usage
+
+The only thing required is pandas, as outlined in `requirements.txt`. 
+Additionally, a singularity/apptainer definition file is given in `telompy.def`. 
+
+It can be used as a Python API (the main function being `calculate_telomere_lengths`) which takes all the parameters the CLI tool takes,
+and it can be used from the CLI.
 
 # Theory of operation
 
@@ -68,6 +75,7 @@ the reason why high coverage of optical mapping is necessary (large amounts of f
 that can plop a label where there should be none.
 
 For example:
+
 **ADD IMAGE**
 
 In the above image, there is a label on contig (marked yellow) that is not paired to the label of reference - the penultimate label on the contig maps
@@ -87,10 +95,54 @@ One problem that can also occur:
 
 In here, our first label is found good 3 million bases after the chromosome start. The first strech of the reference is unlabeled.
 We cannot reasonably call this a telomere - and to that extend we define the maximum distance between the first/last **aligned** label on the reference and the end of the chromosome it's on.
-So an additional parameter `dis_tol` is set. 
+So an additional parameter `dis_tol` is here to control that - the exact value of it depends on the annotation and the assembly of your model organism.
+For mouse, as visualized above, left telomeres are annotated very poorly, and we cannot reasonably calculate them, even as a *relative* value. 
 
 
+# TelOMpy output structure
+The file is saved as a `CSV` file with the following columns:
 
+`RefContigID` - the ID of reference contig (the chromosome)
+
+`MoleculeID` - the ID of a molecule
+
+`QryContigID` - the ID of an assembled contig
+
+`MoleculeOrientation` - the orientation of Molecule-Contig assembly (1 for + and -1 for -)
+
+`ContigOrientation` - the orientation of Contig-Reference assembly (1 for + and -1 for -)
+
+`MoleculeConfidence` - the confidence score of Molecule-Contig assembly
+
+`AlignedLabelPosition` - the position (in nucleotide basepairs) of the first/last aligned label on the reference
+
+`BoundReferencePosition` - the position (in nucleotide basepairs) of the first/last label on the reference
+
+`UnpairedReferenceLabels` - the number of labels on the reference before/after the last aligned label
+
+`UnpairedContigLabels` - the number of labels on the contig before/after the last aligned label
+
+`UnpairedMoleculeLabels` - the number of labels on the molecule before/after the last aligned label
+
+`EndDistance` - the distance (in nucleotide basepairs) between the start/end of the chromosome and first/last aligned label
+
+`MoleculeLen` - the length of the molecule
+
+`Telomere` - left or right telomere
+
+`TelomereLen` - the length of the telomere
+
+- - -
+Some notes:
+
+"AlignedLabelPosition" and "BoundReferencePosition" will be equal if "UnpariedReferenceLabels" is 0.
+
+"MoleculeConfidence" is defined as "Negative Log10 of p-value of alignment" and details can be found in Bionano's Theory of Operations - Structural Variant Calling pdf document.
+I'll C/P what I've learned from BNGO's support:
+>There is a general description on page 17, and more in the appendix sections for different variant types. Please also find a more detailed description for the p-values for insertions and deletions confidence scores below and in the attached pdf (publication on which the modeling is based):
+> The non-normalized likelihood ratio for the insertion or deletion region is based on Gaussian error likelihood and the ratio of label interval vs Gaussian SD
+> The confidence is based on the average PPV (fraction of calls that are correct) for a large number of simulated insertions (or deletions) in the same size bin (eg 500-1000bp, 1kb-2kb etc) and same Pvalue or Likelihood ratio bin (whichever is less stringent, typically that is the Gaussian likelihood ratio, unless the insertion or deletion is near the end of the alignment, and the p-Value bins are 0.1+, 0.01-0.1, 0.001-)
+> **A confidence score of 0 could also indicate an area of high (or low) complexity, for which alignments were difficult to determine. It does not necessarily mean a variant should not be considered at all.**  
 
 
 # Structure of BNGO *de novo* assembly
