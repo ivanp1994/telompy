@@ -1,13 +1,18 @@
 # TeOMPy usage for BNGO data
-## Input
+## Input and output
 The primary input for `telompy` is a folder with BNGO assembly which is downloaded either from Bionano Access or is the output of Bionano Solve. The structure of said folder (and relevant files) are elucidated in *Structure of BNGO de novo assembly*.
 
-There are two ways to input the folder:
- - 1 via `--conf`/`-c` parameter:
-The parameter takes a `CSV` (no column names!) file of two columns (second one can be empty) where first column contains paths to BNGO *de novo* assembly folders and the second column contains how the telomere lengths will be saved.
+There are two ways to input the BNGO folder:
+
+ - 1 via `--conf`/`-c` parameter which takes a `CSV` (no column names!) file of two columns (second one can be empty) where first column contains paths to BNGO *de novo* assembly folders and the second column contains how the telomere lengths will be saved.
+
 - 2 via `--input`/`-i` and `--name`/`-n` parameters where the first is a white-space delimited list of paths to BNGO *de novo* assembly folders and the is a white-space delimited list of how telomere lengths will be saved.
 
-Example usage (via apptainer):
+The output where telomeres will be saved are specified via `--output`/`-o` folder. Telomeres will be saved as `CSV` files in said folder. If there is no `--name`/`-n` parameter or `--conf`/`-c`'s second column is empty (or some elements are empty), then the telomeres will be saved as the base-name of said folder.
+
+Multiprocessing is implemented via `--thread`/`-t` parameter,
+
+Example usage:
 
 `telompy -c conf.csv -o telomeres_bngo -t 8`
 
@@ -15,6 +20,25 @@ and
 
 `telompy -i BNGO/K55_-_De_novo_pipeline_results BNGO/K56_-_De_novo_pipeline_results -n 5455_Kidney_WD 5456_Kidney_WD -o telomeres_bngo -t 8
 `
+## Aditional parameters for filtering
+There are five additional parameters that are used to filter out the data (for details, see *Theory of operations*):
+
+`--arms`/`-a` - Which ends of chromosomes to calculate telomeres (valid options are 'L' for left and 'R' for right, or 'L' and 'R' for both
+
+`--ref_tol`/`-rt` - Maximum number of unpaired labels on the reference (chromosome) after/before the last aligned pair
+
+`--con_tol`/`-ct` - Maximum number of unpaired labels on the contig (chromosome) after/before the last aligned pair
+
+`--mol_tol`/`-mt` - Maximum number of unpaired labels on the molecule (chromosome) after/before the last aligned pair
+
+`--dis_tol`/`-dt` - Maximum distance between the first/last aligned label on the reference and the reference length.
+TODO: implement dis_tol in cli.py.
+
+## Additional parameters for future proofing
+These parameters can be changed via CLI, but are also found in `const.py`, and relate to the organizational structure of BNGO folder.
+TODO: dont really want to bother with this
+
+
 
 
 # Structure of BNGO *de novo* assembly
