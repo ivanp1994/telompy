@@ -44,25 +44,27 @@ parser.add_argument("-a", "--arms", type=str, nargs="+", choices=['l', 'L', 'R',
 
 parser.add_argument("-rt", "--ref_tol", type=int, default=REF_TOL,
                     help="Maximum number of unpaired labels on reference (AFTER LAST PAIR)")
-
 parser.add_argument("-ct", "--con_tol", type=int, default=CON_TOL,
                     help="Maximum number of unpaired labels on contig (AFTER LAST PAIR)")
 parser.add_argument("-mt", "--mol_tol", type=int, default=MOL_TOL,
                     help="Maximum number of unpaired labels on molecule (AFTER LAST PAIR)")
+parser.add_argument("-dt", "--dis_tol", type=int, default=MOL_TOL,
+                    help="Maximal distance from the first/last aligned label to the respective end of the chromosome")
 
 # OUTPUT FOLDER
 parser.add_argument("-o", "--output", default="telomere_lengths", type=str,
                     help="Output folder for extracted data")
 
+# TODO - refactor this from constants
 # ARGUMENTS FOR FUTURE-PROOFING
 parser.add_argument("-cf", "--contig_format", type=str, default=CONTIG_PATH,
                     help="Reconfigure contig path")
 parser.add_argument("-mx", "--main_xmap", type=str, default=MASTER_XMAP,
                     help="Reconfigure master xmap")
 parser.add_argument("-qc", "--querycmap_format", type=str, default=QUERYCMAP_PATH,
-                    help="Reconfigure format of query cmap")
+                    help="Reconfigure format of query cmap (molecule query)")
 parser.add_argument("-mr", "--main_cmapr", type=str, default=MASTER_REFERENCE,
-                    help="Reconfigure format of query cmap")
+                    help="Reconfigure format of reference cmap (contig reference/chromosome query)")
 parser.add_argument("-cq", "--contig_query", type=str, default=MASTER_QUERY,
                     help="Reconfigure format of contig as a query")
 
@@ -158,6 +160,7 @@ def command_line_target():
                   "ref_tol", "con_tol", "mol_tol", "dis_tol",
                   "how"}}
     func_args["how"] = reconfigure_arms(args["arms"])
+
     targets = validate_targets_target(input_args)
 
     output_dir = args["output"]

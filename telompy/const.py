@@ -12,6 +12,13 @@ CONTIG_PATH = "output/contigs/annotation/refine1_ExperimentLabel/EXP_REFINEFINAL
 REFCMAP_PATH = "output/contigs/annotation/refine1_ExperimentLabel/EXP_REFINEFINAL1_contig{x}_r.cmap"
 QUERYCMAP_PATH = "output/contigs/annotation/refine1_ExperimentLabel/EXP_REFINEFINAL1_contig{x}_q.cmap"
 
+# CHROM_XMAP =  "output/contigs/annotation/exp_refineFinal1_merged.xmap"
+# CHROM_QUERY =  "output/contigs/annotation/exp_refineFinal1_merged_q.cmap"
+# CHROM_REFERENCE = "output/contigs/annotation/exp_refineFinal1_merged_r.cmap"
+# CONTIG_XMAP = "output/contigs/annotation/refine1_ExperimentLabel/EXP_REFINEFINAL1_contig{x}.xmap"
+# CONTIG_REFERENCE = "output/contigs/annotation/refine1_ExperimentLabel/EXP_REFINEFINAL1_contig{x}_r.cmap"
+# CONTIG_QUERY = "output/contigs/annotation/refine1_ExperimentLabel/EXP_REFINEFINAL1_contig{x}_q.cmap"
+
 REF_TOL = 0
 CON_TOL = 8
 MOL_TOL = 200
