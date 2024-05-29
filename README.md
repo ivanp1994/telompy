@@ -1,3 +1,20 @@
+# TeOMPy usage for BNGO data
+## Input
+The primary input for `telompy` is a folder with BNGO assembly which is downloaded either from Bionano Access or is the output of Bionano Solve. The structure of said folder (and relevant files) are elucidated in *Structure of BNGO de novo assembly*.
+
+There are two ways to input the folder:
+ - 1 via `--conf`/`-c` parameter:
+The parameter takes a `CSV` (no column names!) file of two columns (second one can be empty) where first column contains paths to BNGO *de novo* assembly folders and the second column contains how the telomere lengths will be saved.
+- 2 via `--input`/`-i` and `--name`/`-n` parameters where the first is a white-space delimited list of paths to BNGO *de novo* assembly folders and the is a white-space delimited list of how telomere lengths will be saved.
+
+Example usage (via apptainer):
+
+`telompy -c conf.csv -o telomeres_bngo -t 8`
+
+and 
+
+`telompy -i BNGO/K55_-_De_novo_pipeline_results BNGO/K56_-_De_novo_pipeline_results -n 5455_Kidney_WD 5456_Kidney_WD -o telomeres_bngo -t 8
+`
 
 
 # Structure of BNGO *de novo* assembly
