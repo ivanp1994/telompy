@@ -139,6 +139,12 @@ def validate_targets_target(input_args: Dict[str, List[str]]) -> List[Tuple[str,
     return targets
 
 
+def reconfigure_arms(arms=List[str]
+                     ) -> List[str]:
+    "reconfigures arums"
+    return [{"L": "left", "R": "right"}[k] for k in list(set(x.upper() for x in arms))]
+
+
 def command_line_target():
     "main function - target for CLI"
     args = vars(parser.parse_args())
@@ -148,9 +154,10 @@ def command_line_target():
 
     # arguments for func
     func_args = {k: v for k, v in args.items() if k in
-                 {"arms", "contig_format", "main_xmap", "querycmap_format", "main_cmapr",
-                  "ref_tol", "con_tol", "mol_tol"}}
-
+                 {"contig_format", "main_xmap", "querycmap_format", "main_cmapr",
+                  "ref_tol", "con_tol", "mol_tol", "dis_tol",
+                  "how"}}
+    func_args["how"] = reconfigure_arms(args["arms"])
     targets = validate_targets_target(input_args)
 
     output_dir = args["output"]
