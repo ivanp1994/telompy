@@ -472,7 +472,7 @@ def calculate_telomere(row: pd.Series, path: str,
                        querycmap_format: str = QUERYCMAP_PATH,
                        contig_query: str = MASTER_QUERY,):
 
-    telarm: Literal["left","right"] = row["TelomereArm"]
+    telarm: Literal["left", "right"] = row["TelomereArm"]
     # master_orientation:Literal["+","-"] = row["Orientation"]
     # master_chromosome = row["RefContigID"]
     master_contig: int = row["QryContigID"]
