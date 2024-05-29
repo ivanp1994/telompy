@@ -39,8 +39,8 @@ parser.add_argument("-t", "--threads", type=int, default=1,
                     help="Number of threads for parallel extraction")
 
 # FUNCTIONAL ARGUMENTS
-parser.add_argument("-gs", "--gap_size", type=int, default=100000,
-                    help="Gap size for calculation of Telomere Offset")
+parser.add_argument("-a", "--arms", type=str, nargs="+", choices=['l', 'L', 'R', 'r'], default=["L", "R"],
+                    help="Calculate telomeres on which arm of a chromosome - left (L) or right (R) or both (L R)")
 
 parser.add_argument("-rt", "--ref_tol", type=int, default=REF_TOL,
                     help="Maximum number of unpaired labels on reference (AFTER LAST PAIR)")
@@ -148,7 +148,7 @@ def command_line_target():
 
     # arguments for func
     func_args = {k: v for k, v in args.items() if k in
-                 {"gap_size", "contig_format", "main_xmap", "querycmap_format", "main_cmapr",
+                 {"arms", "contig_format", "main_xmap", "querycmap_format", "main_cmapr",
                   "ref_tol", "con_tol", "mol_tol"}}
 
     targets = validate_targets_target(input_args)

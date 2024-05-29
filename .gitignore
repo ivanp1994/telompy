@@ -2,7 +2,10 @@
 confidence_calculation.py
 extra_info/
 test.py
-exploting_telomeres.py
+refactoring_1.py
+refactoring_2.py
+refactoring_3.py
+refactoring_stored.py
 telomere_lengths/
 Exploting_telomeres.ipynb
 telomerepos.txt

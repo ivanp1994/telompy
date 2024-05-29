@@ -15,3 +15,4 @@ QUERYCMAP_PATH = "output/contigs/annotation/refine1_ExperimentLabel/EXP_REFINEFI
 REF_TOL = 0
 CON_TOL = 8
 MOL_TOL = 200
+DIS_TOL = 500000  # corresponding to 500kB
