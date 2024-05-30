@@ -14,7 +14,9 @@ import numpy as np
 import pandas as pd
 
 
-from .const import CONTIG_PATH, QUERYCMAP_PATH, MASTER_XMAP, MASTER_REFERENCE, MASTER_QUERY, REF_TOL, CON_TOL, MOL_TOL
+from .const import (CONTIG_XMAP, CONTIG_QUERY,
+                    CHROM_XMAP, CHROM_REFERENCE, CHROM_QUERY,
+                    REF_TOL, CON_TOL, MOL_TOL, DIS_TOL)
 from .funcs import calculate_telomere_lengths
 from .utils import joinpaths
 
@@ -48,7 +50,7 @@ parser.add_argument("-ct", "--con_tol", type=int, default=CON_TOL,
                     help="Maximum number of unpaired labels on contig (AFTER LAST PAIR)")
 parser.add_argument("-mt", "--mol_tol", type=int, default=MOL_TOL,
                     help="Maximum number of unpaired labels on molecule (AFTER LAST PAIR)")
-parser.add_argument("-dt", "--dis_tol", type=int, default=MOL_TOL,
+parser.add_argument("-dt", "--dis_tol", type=int, default=DIS_TOL,
                     help="Maximal distance from the first/last aligned label to the respective end of the chromosome")
 
 # OUTPUT FOLDER
@@ -57,15 +59,15 @@ parser.add_argument("-o", "--output", default="telomere_lengths", type=str,
 
 # TODO - refactor this from constants
 # ARGUMENTS FOR FUTURE-PROOFING
-parser.add_argument("-cf", "--contig_format", type=str, default=CONTIG_PATH,
+parser.add_argument("-cf", "--contig_format", type=str, default=CONTIG_XMAP,
                     help="Reconfigure contig path")
-parser.add_argument("-mx", "--main_xmap", type=str, default=MASTER_XMAP,
+parser.add_argument("-mx", "--main_xmap", type=str, default=CHROM_XMAP,
                     help="Reconfigure master xmap")
-parser.add_argument("-qc", "--querycmap_format", type=str, default=QUERYCMAP_PATH,
+parser.add_argument("-qc", "--querycmap_format", type=str, default=CONTIG_QUERY,
                     help="Reconfigure format of query cmap (molecule query)")
-parser.add_argument("-mr", "--main_cmapr", type=str, default=MASTER_REFERENCE,
+parser.add_argument("-mr", "--main_cmapr", type=str, default=CHROM_REFERENCE,
                     help="Reconfigure format of reference cmap (contig reference/chromosome query)")
-parser.add_argument("-cq", "--contig_query", type=str, default=MASTER_QUERY,
+parser.add_argument("-cq", "--contig_query", type=str, default=CHROM_QUERY,
                     help="Reconfigure format of contig as a query")
 
 
@@ -156,7 +158,8 @@ def command_line_target():
 
     # arguments for func
     func_args = {k: v for k, v in args.items() if k in
-                 {"contig_format", "main_xmap", "querycmap_format", "main_cmapr",
+                 {"contig_format", "main_xmap",
+                  "querycmap_format", "main_cmapr", "contig_query"
                   "ref_tol", "con_tol", "mol_tol", "dis_tol",
                   "how"}}
     func_args["how"] = reconfigure_arms(args["arms"])

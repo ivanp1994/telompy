@@ -13,11 +13,9 @@ from multiprocessing import Pool
 import pandas as pd
 
 from .utils import read_map_file, joinpaths, func_timer
-from .const import (CONTIG_PATH, QUERYCMAP_PATH,
-                    MASTER_XMAP, MASTER_REFERENCE,
-                    MASTER_QUERY,
+from .const import (CONTIG_XMAP, CONTIG_QUERY,
+                    CHROM_XMAP, CHROM_REFERENCE, CHROM_QUERY,
                     REF_TOL, CON_TOL, MOL_TOL, DIS_TOL)
-
 
 logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
 logger = logging.getLogger("telompy")
@@ -109,8 +107,8 @@ def fish_offsets(aligned: pd.DataFrame, reference_cmap: pd.DataFrame, how: Liter
 
 
 def fish_paired_label(path: str, how: Literal["left", "right"],
-                      main_xmap: str = MASTER_XMAP,
-                      main_cmapr: str = MASTER_REFERENCE,) -> pd.DataFrame:
+                      main_xmap: str = CHROM_XMAP,
+                      main_cmapr: str = CHROM_REFERENCE,) -> pd.DataFrame:
     """
     Given a path to the BioNano denovo assembly, this function finds XMAP
     for assembly of contigs-to-chromosome, then finds alignments that
@@ -185,7 +183,7 @@ def get_first_query_bound_reference(align_str: str, how: Literal["left", "right"
 
 def get_number_of_unpaired_contig_labels(path: Union[str, pd.DataFrame], alignment: str, qrycontigid: int,
                                          orientation: Literal["-", "+"], telarm: Literal["left", "right"],
-                                         contig_query: str = MASTER_QUERY) -> int:
+                                         contig_query: str = CHROM_QUERY) -> int:
     """
     This function returns number of unpaired labels on the contig (query).
     The contig is a query in a contig-to-reference assembly.
@@ -291,7 +289,7 @@ def get_number_of_unpaired_contig_labels(path: Union[str, pd.DataFrame], alignme
 
 
 def _gnoucl(subrow: pd.Series, molecules: pd.DataFrame, telarm: Literal["left", "right"],
-            contig_query: str = MASTER_QUERY) -> pd.Series:
+            contig_query: str = CHROM_QUERY) -> pd.Series:
     """
     A wrapper around 'get_number_of_unpaired_contig_labels'
 
@@ -485,9 +483,9 @@ def calculate_telomere_length_formula(row: pd.Series, telarm: Literal["left", "r
 
 
 def calculate_telomere(row: pd.Series, path: str,
-                       contig_format: str = CONTIG_PATH,
-                       querycmap_format: str = QUERYCMAP_PATH,
-                       contig_query: str = MASTER_QUERY,):
+                       contig_format: str = CONTIG_XMAP,
+                       querycmap_format: str = CONTIG_QUERY,
+                       contig_query: str = CHROM_QUERY,):
 
     telarm: Literal["left", "right"] = row["TelomereArm"]
     # master_orientation:Literal["+","-"] = row["Orientation"]
@@ -590,9 +588,9 @@ def time_function(*args, **kwargs) -> Callable:
 
 
 def _calculate_telomere_lengths(path: str, how: Literal["left", "right"],
-                                main_xmap: str = MASTER_XMAP, main_cmapr: str = MASTER_REFERENCE,
-                                contig_format: str = CONTIG_PATH, querycmap_format: str = QUERYCMAP_PATH,
-                                contig_query: str = MASTER_QUERY, threads: int = 1,
+                                main_xmap: str = CHROM_XMAP, main_cmapr: str = CHROM_REFERENCE,
+                                contig_format: str = CONTIG_XMAP, querycmap_format: str = CONTIG_QUERY,
+                                contig_query: str = CHROM_QUERY, threads: int = 1,
                                 ) -> pd.DataFrame:
     """
     Calculates telomere lengths for a given path to BNGO de novo Assembly and
@@ -670,9 +668,9 @@ def reduce_dataset(data: pd.DataFrame, ref_tol: int,
 
 def calculate_telomere_lengths(path: str,
                                how: Union[List[Literal["left"]], List[Literal["right"]], List[Literal["left", "right"]]],
-                               main_xmap: str = MASTER_XMAP, main_cmapr: str = MASTER_REFERENCE,
-                               contig_format: str = CONTIG_PATH, querycmap_format: str = QUERYCMAP_PATH,
-                               contig_query: str = MASTER_QUERY, threads: int = 1,
+                               main_xmap: str = CHROM_XMAP, main_cmapr: str = CHROM_REFERENCE,
+                               contig_format: str = CONTIG_XMAP, querycmap_format: str = CONTIG_QUERY,
+                               contig_query: str = CHROM_QUERY, threads: int = 1,
                                ref_tol: int = REF_TOL, con_tol: int = CON_TOL, mol_tol: int = MOL_TOL,
                                dis_tol: int = DIS_TOL
                                ) -> pd.DataFrame:

@@ -1,0 +1,21 @@
+main_xmap = MASTER_XMAP = CHROM_XMAP	    
+contig_query = MASTER_QUERY = CHROM_QUERY
+main_cmapr = MASTER_REFERENCE = CHROM_REFERENCE
+
+contig_format = CONTIG_PATH = CONTIG_XMAP
+querycmap_format = QUERYCMAP_PATH = CONTIG_QUERY
+
+
+
+MASTER_XMAP = CHROM_XMAP	  
+MASTER_QUERY = CHROM_QUERY  
+MASTER_REFERENCE = CHROM_REFERENCE        
+CONTIG_PATH = CONTIG_XMAP
+QUERYCMAP_PATH = CONTIG_QUERY 
+
+main_xmap = chrom_xmap
+contig_query = chrom_query
+main_cmapr = chrom_reference
+
+contig_format = contig_xmap_format
+querycmap_format = contig_query_format
