@@ -107,8 +107,8 @@ def fish_offsets(aligned: pd.DataFrame, reference_cmap: pd.DataFrame, how: Liter
 
 
 def fish_paired_label(path: str, how: Literal["left", "right"],
-                      main_xmap: str = CHROM_XMAP,
-                      main_cmapr: str = CHROM_REFERENCE,) -> pd.DataFrame:
+                      chrom_xmap: str = CHROM_XMAP,
+                      chrom_reference: str = CHROM_REFERENCE,) -> pd.DataFrame:
     """
     Given a path to the BioNano denovo assembly, this function finds XMAP
     for assembly of contigs-to-chromosome, then finds alignments that
@@ -123,8 +123,8 @@ def fish_paired_label(path: str, how: Literal["left", "right"],
     This contains the difference between last/first label and last/firs aligned label
     in the number of labels between the two.
     """
-    master_xmap = read_map_file(joinpaths(path, main_xmap))
-    master_cmap = read_map_file(joinpaths(path, main_cmapr))
+    master_xmap = read_map_file(joinpaths(path, chrom_xmap))
+    master_cmap = read_map_file(joinpaths(path, chrom_reference))
 
     # find either FIRST or LAST reference label on the master xmap
     # filtering out only contigs that align to it
@@ -183,7 +183,7 @@ def get_first_query_bound_reference(align_str: str, how: Literal["left", "right"
 
 def get_number_of_unpaired_contig_labels(path: Union[str, pd.DataFrame], alignment: str, qrycontigid: int,
                                          orientation: Literal["-", "+"], telarm: Literal["left", "right"],
-                                         contig_query: str = CHROM_QUERY) -> int:
+                                         chrom_query: str = CHROM_QUERY) -> int:
     """
     This function returns number of unpaired labels on the contig (query).
     The contig is a query in a contig-to-reference assembly.
@@ -267,7 +267,7 @@ def get_number_of_unpaired_contig_labels(path: Union[str, pd.DataFrame], alignme
     # if mult is negative, we must find N where N is the number of labels
     if isinstance(path, str):
         _cmap_contig_ref = read_molecules_cmap(
-            joinpaths(path, contig_query), [qrycontigid])
+            joinpaths(path, chrom_query), [qrycontigid])
 
     # if the path is an already loaded CMAP
     elif isinstance(path, pd.DataFrame):
@@ -289,7 +289,7 @@ def get_number_of_unpaired_contig_labels(path: Union[str, pd.DataFrame], alignme
 
 
 def _gnoucl(subrow: pd.Series, molecules: pd.DataFrame, telarm: Literal["left", "right"],
-            contig_query: str = CHROM_QUERY) -> pd.Series:
+            chrom_query: str = CHROM_QUERY) -> pd.Series:
     """
     A wrapper around 'get_number_of_unpaired_contig_labels'
 
@@ -302,7 +302,7 @@ def _gnoucl(subrow: pd.Series, molecules: pd.DataFrame, telarm: Literal["left", 
                                                 qrycontigid=qry_id,
                                                 orientation=orient,
                                                 telarm=telarm,
-                                                contig_query=contig_query)
+                                                chrom_query=chrom_query)
 
 
 def alignments_to_reference(xmap_df: pd.DataFrame, label: int) -> pd.DataFrame:
@@ -483,9 +483,9 @@ def calculate_telomere_length_formula(row: pd.Series, telarm: Literal["left", "r
 
 
 def calculate_telomere(row: pd.Series, path: str,
-                       contig_format: str = CONTIG_XMAP,
-                       querycmap_format: str = CONTIG_QUERY,
-                       contig_query: str = CHROM_QUERY,):
+                       contig_xmap_format: str = CONTIG_XMAP,
+                       contig_query_format: str = CONTIG_QUERY,
+                       chrom_query: str = CHROM_QUERY,):
 
     telarm: Literal["left", "right"] = row["TelomereArm"]
     # master_orientation:Literal["+","-"] = row["Orientation"]
@@ -494,9 +494,9 @@ def calculate_telomere(row: pd.Series, path: str,
     contig_alignment: str = row["Alignment"]
 
     # pathings of contig XMAP and contig as _q.cmap
-    contig_path: str = joinpaths(path, contig_format.format(x=master_contig))
+    contig_path: str = joinpaths(path, contig_xmap_format.format(x=master_contig))
     molecules_path: str = joinpaths(
-        path, querycmap_format.format(x=master_contig))
+        path, contig_query_format.format(x=master_contig))
 
     # get the label of bount reference
     aligned_label: int = get_first_query_bound_reference(
@@ -527,7 +527,7 @@ def calculate_telomere(row: pd.Series, path: str,
                                                                                   alignment=row["Alignment"],
                                                                                   qrycontigid=row["QryContigID"],
                                                                                   orientation=row["Orientation"],
-                                                                                  contig_query=contig_query, telarm=telarm
+                                                                                  chrom_query=chrom_query, telarm=telarm
                                                                                   )
 
     contig_aligned["UnpairedMoleculeLabels"] = contig_aligned.apply(_gnoucl, axis=1,   # pylint:disable=E1101,E1137
@@ -588,9 +588,9 @@ def time_function(*args, **kwargs) -> Callable:
 
 
 def _calculate_telomere_lengths(path: str, how: Literal["left", "right"],
-                                main_xmap: str = CHROM_XMAP, main_cmapr: str = CHROM_REFERENCE,
-                                contig_format: str = CONTIG_XMAP, querycmap_format: str = CONTIG_QUERY,
-                                contig_query: str = CHROM_QUERY, threads: int = 1,
+                                chrom_xmap: str = CHROM_XMAP, chrom_reference: str = CHROM_REFERENCE,
+                                contig_xmap_format: str = CONTIG_XMAP, contig_query_format: str = CONTIG_QUERY,
+                                chrom_query: str = CHROM_QUERY, threads: int = 1,
                                 ) -> pd.DataFrame:
     """
     Calculates telomere lengths for a given path to BNGO de novo Assembly and
@@ -598,15 +598,15 @@ def _calculate_telomere_lengths(path: str, how: Literal["left", "right"],
 
     """
     # TODO - better documentation
-    main_xmapdf = fish_paired_label(path=path, how=how,
-                                    main_xmap=main_xmap, main_cmapr=main_cmapr)
+    chrom_xmapdf = fish_paired_label(path=path, how=how,
+                                     chrom_xmap=chrom_xmap, chrom_reference=chrom_reference)
 
-    # main_xmapdf = main_xmapdf[main_xmapdf.RefContigID.isin([4,14,20,21])]
-    # main_xmapdf = main_xmapdf.head(1)
+    # chrom_xmapdf = chrom_xmapdf[chrom_xmapdf.RefContigID.isin([4,14,20,21])]
+    # chrom_xmapdf = chrom_xmapdf.head(1)
 
-    frozen_calculation = partial(time_function, path=path, contig_format=contig_format,
-                                 querycmap_format=querycmap_format, contig_query=contig_query)
-    iterator = (x[1] for x in main_xmapdf.iterrows())
+    frozen_calculation = partial(time_function, path=path, contig_xmap_format=contig_xmap_format,
+                                 contig_query_format=contig_query_format, chrom_query=chrom_query)
+    iterator = (x[1] for x in chrom_xmapdf.iterrows())
 
     if threads > 1:
         with Pool(threads) as pool:
@@ -668,9 +668,9 @@ def reduce_dataset(data: pd.DataFrame, ref_tol: int,
 
 def calculate_telomere_lengths(path: str,
                                how: Union[List[Literal["left"]], List[Literal["right"]], List[Literal["left", "right"]]],
-                               main_xmap: str = CHROM_XMAP, main_cmapr: str = CHROM_REFERENCE,
-                               contig_format: str = CONTIG_XMAP, querycmap_format: str = CONTIG_QUERY,
-                               contig_query: str = CHROM_QUERY, threads: int = 1,
+                               chrom_xmap: str = CHROM_XMAP, chrom_reference: str = CHROM_REFERENCE,
+                               contig_xmap_format: str = CONTIG_XMAP, contig_query_format: str = CONTIG_QUERY,
+                               chrom_query: str = CHROM_QUERY, threads: int = 1,
                                ref_tol: int = REF_TOL, con_tol: int = CON_TOL, mol_tol: int = MOL_TOL,
                                dis_tol: int = DIS_TOL
                                ) -> pd.DataFrame:
@@ -684,9 +684,9 @@ def calculate_telomere_lengths(path: str,
         logger.info("Calculating telomere lengths for %s arm ", option.upper())
 
         data = _calculate_telomere_lengths(path=path, how=option,
-                                           main_xmap=main_xmap, main_cmapr=main_cmapr,
-                                           contig_format=contig_format, querycmap_format=querycmap_format,
-                                           contig_query=contig_query, threads=threads,
+                                           chrom_xmap=chrom_xmap, chrom_reference=chrom_reference,
+                                           contig_xmap_format=contig_xmap_format, contig_query_format=contig_query_format,
+                                           chrom_query=chrom_query, threads=threads,
                                            )
 
         data = pd.concat(data, axis=0, ignore_index=True)

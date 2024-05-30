@@ -59,15 +59,15 @@ parser.add_argument("-o", "--output", default="telomere_lengths", type=str,
 
 # TODO - refactor this from constants
 # ARGUMENTS FOR FUTURE-PROOFING
-parser.add_argument("-cf", "--contig_format", type=str, default=CONTIG_XMAP,
+parser.add_argument("-cf", "--contig_xmap_format", type=str, default=CONTIG_XMAP,
                     help="Reconfigure contig path")
-parser.add_argument("-mx", "--main_xmap", type=str, default=CHROM_XMAP,
+parser.add_argument("-mx", "--chrom_xmap", type=str, default=CHROM_XMAP,
                     help="Reconfigure master xmap")
-parser.add_argument("-qc", "--querycmap_format", type=str, default=CONTIG_QUERY,
+parser.add_argument("-qc", "--contig_query_format", type=str, default=CONTIG_QUERY,
                     help="Reconfigure format of query cmap (molecule query)")
-parser.add_argument("-mr", "--main_cmapr", type=str, default=CHROM_REFERENCE,
+parser.add_argument("-mr", "--chrom_reference", type=str, default=CHROM_REFERENCE,
                     help="Reconfigure format of reference cmap (contig reference/chromosome query)")
-parser.add_argument("-cq", "--contig_query", type=str, default=CHROM_QUERY,
+parser.add_argument("-cq", "--chrom_query", type=str, default=CHROM_QUERY,
                     help="Reconfigure format of contig as a query")
 
 
@@ -158,8 +158,8 @@ def command_line_target():
 
     # arguments for func
     func_args = {k: v for k, v in args.items() if k in
-                 {"contig_format", "main_xmap",
-                  "querycmap_format", "main_cmapr", "contig_query"
+                 {"contig_xmap_format", "chrom_xmap",
+                  "contig_query_format", "chrom_reference", "chrom_query"
                   "ref_tol", "con_tol", "mol_tol", "dis_tol",
                   "how"}}
     func_args["how"] = reconfigure_arms(args["arms"])
