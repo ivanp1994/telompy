@@ -1,12 +1,12 @@
 # TeOMPy usage for BNGO data
-## Input and output
+## Input and output parameters
 The primary input for `telompy` is a folder with BNGO assembly which is downloaded either from Bionano Access or is the output of Bionano Solve. The structure of said folder (and relevant files) are elucidated in *Structure of BNGO de novo assembly*.
 
 There are two ways to input the BNGO folder:
 
- - 1 via `--conf`/`-c` parameter which takes a `CSV` (no column names!) file of two columns (second one can be empty) where first column contains paths to BNGO *de novo* assembly folders and the second column contains how the telomere lengths will be saved.
+ - via `--conf`/`-c` parameter which takes a `CSV` (no column names!) file of two columns (second one can be empty) where first column contains paths to BNGO *de novo* assembly folders and the second column contains how the telomere lengths will be saved.
 
-- 2 via `--input`/`-i` and `--name`/`-n` parameters where the first is a white-space delimited list of paths to BNGO *de novo* assembly folders and the is a white-space delimited list of how telomere lengths will be saved.
+- via `--input`/`-i` and `--name`/`-n` parameters where the first is a white-space delimited list of paths to BNGO *de novo* assembly folders and the is a white-space delimited list of how telomere lengths will be saved.
 
 The output where telomeres will be saved are specified via `--output`/`-o` folder. Telomeres will be saved as `CSV` files in said folder. If there is no `--name`/`-n` parameter or `--conf`/`-c`'s second column is empty (or some elements are empty), then the telomeres will be saved as the base-name of said folder.
 
@@ -31,14 +31,118 @@ There are five additional parameters that are used to filter out the data (for d
 
 `--mol_tol`/`-mt` - Maximum number of unpaired labels on the molecule (chromosome) after/before the last aligned pair
 
-`--dis_tol`/`-dt` - Maximum distance between the first/last aligned label on the reference and the reference length.
-TODO: implement dis_tol in cli.py.
+`--dis_tol`/`-dt` - Maximum distance between the first/last aligned label on the reference and the end of a chromosome (in nucleotide base pairs).
+
 
 ## Additional parameters for future proofing
 These parameters can be changed via CLI, but are also found in `const.py`, and relate to the organizational structure of BNGO folder.
-TODO: dont really want to bother with this
+TODO: EXPLAIN AFTER REFORMATTING
+
+## Installation and usage
+
+The only thing required is pandas, as outlined in `requirements.txt`. 
+Additionally, a singularity/apptainer definition file is given in `telompy.def`. 
+
+It can be used as a Python API (the main function being `calculate_telomere_lengths`) which takes all the parameters the CLI tool takes,
+and it can be used from the CLI.
+
+# Theory of operation
+
+We aim to provide a relatively sensible way to determine the telomere lengths. 
+
+Telomeres are repetitive nucleotide sequences associated with specialized proteins at the ends of linear chromosomes commonly found in eukaryotes.
+Optical mapping, as implemented by Bionano Genomics (BNGO) is a technique that involves marking high molecular weight (HMW) DNA on specific motifs, and then 
+assembling a complete map of an organism from the patterns of said marking.
+
+First off, we actually cannot determine *absolute* telomere length. Telomeres are repetitive sequences, and specific motifs recognized by BNGO enzymes cannot mark a telomere.
+What we can do, is determine the end point after (for the right end of  thechromosome) or before (for the left end of the chromosome) the last or the first label on the reference.
+Visualized below:
+**ADD IMAGE**
+
+We can call this *relative* telomere length.
+The procedure is simple - we find the bound label (last label for the right, and first label for the left) on the reference, we find its pair on the individual molecule,
+and then (depending on the orientation of the assembly), the *relative* telomere length is the part of the individual molecule *after* or *before* said pair.
+
+The procedure is made more complicated by the way BNGO assembles and maps. In the first round, the individual molecules are assembled into contigs.
+In the second round, the assembled contigs are aligned to the reference (or de novo assembled if no reference is given). This gives two distinct views:
+
+  1) Molecules to contigs
+  2) Contigs to reference
+
+So in order to find molecules mapped to reference, we must *overlay* these two views to get "molecules-to-reference".
+One problem that can occur is related to high coverage (and therefore a huge amount of individual molecules needed),
+the reason why high coverage of optical mapping is necessary (large amounts of false positives) and possible mutations in individual molecules
+that can plop a label where there should be none.
+
+For example:
+
+**ADD IMAGE**
+
+In the above image, there is a label on contig (marked yellow) that is not paired to the label of reference - the penultimate label on the contig maps
+to the last label on the reference. What happened here is that out of a bunch of molecules that assembled said contig, a sufficient number of molecules had
+one extra label - a mutation or a false positive (an enzyme labeled a place it shouldn't have) happened on - so our contig got one extra label that does not fit in the reference.
+
+Similar problems can occur for a reference - if the **last/first aligned** label on the reference is not the **last/first** label on the reference, we cannot call this a *relative* telomere, let alone a telomere.
+To control for this, we implement a few key filters elucidated in *Additional parameters for filtering*. 
+
+Recapped, those are related to the maximum number of labels on reference/contig/molecule before/after the first/last **aligned** pair of molecule-contig-reference.
+Note the bolded part - if you have e.g. 3 extra labels on the contig that do not align to the reference, and have 15 extra labels on the molecule that do not align to the reference, but 3 of those actually align to the contig,
+we are still counting 15 extra labels.
+
+One problem that can also occur:
+
+**ADD IMAGE**
+
+In here, our first label is found good 3 million bases after the chromosome start. The first strech of the reference is unlabeled.
+We cannot reasonably call this a telomere - and to that extend we define the maximum distance between the first/last **aligned** label on the reference and the end of the chromosome it's on.
+So an additional parameter `dis_tol` is here to control that - the exact value of it depends on the annotation and the assembly of your model organism.
+For mouse, as visualized above, left telomeres are annotated very poorly, and we cannot reasonably calculate them, even as a *relative* value. 
 
 
+# TelOMpy output structure
+The file is saved as a `CSV` file with the following columns:
+
+`RefContigID` - the ID of reference contig (the chromosome)
+
+`MoleculeID` - the ID of a molecule
+
+`QryContigID` - the ID of an assembled contig
+
+`MoleculeOrientation` - the orientation of Molecule-Contig assembly (1 for + and -1 for -)
+
+`ContigOrientation` - the orientation of Contig-Reference assembly (1 for + and -1 for -)
+
+`MoleculeConfidence` - the confidence score of Molecule-Contig assembly
+
+`AlignedLabelPosition` - the position (in nucleotide basepairs) of the first/last aligned label on the reference
+
+`BoundReferencePosition` - the position (in nucleotide basepairs) of the first/last label on the reference
+
+`UnpairedReferenceLabels` - the number of labels on the reference before/after the last aligned label
+
+`UnpairedContigLabels` - the number of labels on the contig before/after the last aligned label
+
+`UnpairedMoleculeLabels` - the number of labels on the molecule before/after the last aligned label
+
+`EndDistance` - the distance (in nucleotide basepairs) between the start/end of the chromosome and first/last aligned label
+
+`MoleculeLen` - the length of the molecule
+
+`Telomere` - left or right telomere
+
+`TelomereLen` - the length of the telomere
+
+- - -
+Some notes:
+
+"AlignedLabelPosition" and "BoundReferencePosition" will be equal if "UnpariedReferenceLabels" is 0.
+
+"MoleculeConfidence" is defined as "Negative Log10 of p-value of alignment" and details can be found in Bionano's Theory of Operations - Structural Variant Calling pdf document.
+I'll C/P what I've learned from BNGO's support:
+>There is a general description on page 17, and more in the appendix sections for different variant types. Please also find a more detailed description for the p-values for insertions and deletions confidence scores below and in the attached pdf (publication on which the modeling is based):
+> The non-normalized likelihood ratio for the insertion or deletion region is based on Gaussian error likelihood and the ratio of label interval vs Gaussian SD
+> The confidence is based on the average PPV (fraction of calls that are correct) for a large number of simulated insertions (or deletions) in the same size bin (eg 500-1000bp, 1kb-2kb etc) and same Pvalue or Likelihood ratio bin (whichever is less stringent, typically that is the Gaussian likelihood ratio, unless the insertion or deletion is near the end of the alignment, and the p-Value bins are 0.1+, 0.01-0.1, 0.001-)
+> **A confidence score of 0 could also indicate an area of high (or low) complexity, for which alignments were difficult to determine. It does not necessarily mean a variant should not be considered at all.**  
 
 
 # Structure of BNGO *de novo* assembly
@@ -62,6 +166,7 @@ output/
 `XMAP` (*cross*-map) files represent an alignment file (equivalent to a `BAM` or `SAM` file) between a query and a reference.
 Reference must be in `CMAP` (*consensus*-map) format, while the query can either be in `BNX` or `CMAP` format.
 The reference query in `BNX` format is found as `autoNoise1_rescaled.bnx`, but we utilize reference queries in the `CMAP` format found either as `exp_refineFinal1_merged_q.cmap` or ˛`EXP_REFINEFINAL1_contig{x}_q.cmap`.
+(If one wants to use alternative optical map assembly tools, such as [FaNDOM](https://github.com/jluebeck/FaNDOM) the (processed) molecules are given in `autoNoise1_rescaled.bnx` and the reference is given in `exp_refineFinal1_merged_q.cmap`)
 
 The BNGO assembly is done in two parts:
 First a *de novo* assembly of contigs from molecules where molecules are assembled into N contigs of specific IDs. The contigs are found in the folder `refine1_ExperimentLabel` in the three forms:
@@ -78,4 +183,3 @@ The second step is to align contigs to the reference. The files are found in a f
 Since optical mapping by BNGO can easily achieve chromosome-level coverage, we will refer to the first step as "molecule-to-contig" and the second step as "contig-to-chromosome" alignment.
 All locations of relevant files are specified in `const.py` for (relative) future-proofing should BNGO deem a change in the structure is necessary.
 
-# Steps to calculate (relative) telomere length
