@@ -35,8 +35,18 @@ There are five additional parameters that are used to filter out the data (for d
 
 
 ## Additional parameters for future proofing
-These parameters can be changed via CLI, but are also found in `const.py`, and relate to the organizational structure of BNGO folder.
-TODO: EXPLAIN AFTER REFORMATTING
+These parameters can be changed via CLI, but are also found in `const.py`, and relate to the organizational structure of BNGO folder - for more details, see *Structure of BNGO de novo assembly*.
+
+`-mx`/`--chrom_xmap` - an `XMAP` file of all contigs versus a reference
+
+`-mr`/`--chrom_reference` -a `CMAP` file of the reference (the final, presumably chromosome-level reefrence) 
+
+`-cq`/`--chrom_query` - a `CMAP` file of assembled contigs, serves as an query against `chrom_reference`
+
+`-cf`/`--contig_xmap_format` - an `XMAP` file of queried molecules against a *de novo* assembly of queried molecules
+
+`-qc`/`--contig_query_format` - a `CMAP` file of molecules that serves as a query, and first step of assembly
+
 
 ## Installation and usage
 
@@ -174,6 +184,8 @@ First a *de novo* assembly of contigs from molecules where molecules are assembl
  - EXP_REFINEFINAL1_contig{x}.xmap - which is an `XMAP` file of a segment of molecules versus *de novo* contigs
  - EXP_REFINEFINAL1_contig{x}_r.cmap - which is a `CMAP` file of a reference contig
  - EXP_REFINEFINAL1_contig{x}_q.cmap - which is a `CMAP` file of the raw molecules
+
+The `{x}` is a specific contig ID.
 
 The second step is to align contigs to the reference. The files are found in a folder above `refine1_ExperimentLabel` and consist of three important files:
 - exp_refineFinal1_merged.xmap - which is an `XMAP` file of all contigs versus a reference
