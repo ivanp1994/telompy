@@ -75,8 +75,12 @@ assembling a complete map of an organism from the patterns of said marking.
 First off, we actually cannot determine *absolute* telomere length. Telomeres are repetitive sequences, and specific motifs recognized by BNGO enzymes cannot mark a telomere.
 What we can do, is determine the end point after (for the right end of  thechromosome) or before (for the left end of the chromosome) the last or the first label on the reference.
 Visualized below:
-**ADD IMAGE**
 
+![drawing-1](https://github.com/ivanp1994/telompy/assets/84333373/d1ae2dd4-6230-495f-a136-78d67b475a66)
+
+
+The green rectangles represent a reference, whilst blue rectangles represent a single molecule. Optical mapping works by aligning labels (thin blue lines) on a molecule to 
+labels on the reference. The red squares are segments of molecule before the first label that aligns to the first label on the reference and after the last label that aligns to the last label on the reference.
 We can call this *relative* telomere length.
 The procedure is simple - we find the bound label (last label for the right, and first label for the left) on the reference, we find its pair on the individual molecule,
 and then (depending on the orientation of the assembly), the *relative* telomere length is the part of the individual molecule *after* or *before* said pair.
