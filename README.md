@@ -1,4 +1,12 @@
-# TeOMPy usage for BNGO data
+# TelOMPy
+A Python tool to determine individual (molecule) level of telomere lengths from optical mapping 
+
+[![Licence](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/irahorecka/sgd-rest/main/LICENSE)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
+
+
+# TelOMPy usage for BNGO data
 ## Input and output parameters
 The primary input for `telompy` is a folder with BNGO assembly which is downloaded either from Bionano Access or is the output of Bionano Solve. The structure of said folder (and relevant files) are elucidated in *Structure of BNGO de novo assembly*.
 
