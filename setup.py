@@ -31,7 +31,7 @@ setup(name="TelOMpy",
                       },
       entry_points={
           'console_scripts': [
-              'telompy = telompy.cli:command_line_target',
-              'telompy_validate = telompy.cli:validate_targets_target'
+              'telompy = telompy_fnd.cli:command_line_target',
+              'telompy_validate = telompy_fnd.cli:validate_targets_target'
           ]}
       )

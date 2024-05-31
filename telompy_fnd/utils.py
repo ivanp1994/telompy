@@ -9,7 +9,7 @@ import time
 import functools
 import platform
 import logging
-from typing import List, Dict
+from typing import List
 import pandas as pd
 
 logger = logging.getLogger("telompy_fandom")
@@ -49,7 +49,8 @@ def read_map_file(path: str):
             if line.startswith("#"):
                 i += 1
                 if line.startswith("#h"):
-                    header = [x.strip() for x in line.replace("#h ", "").split("\t")]
+                    header = [x.strip()
+                              for x in line.replace("#h ", "").split("\t")]
             else:
                 break
 
@@ -79,13 +80,6 @@ def count_comment_lines(path: str) -> int:
 def get_partial_alignment(xpath: str) -> str:
     "gets path of partial alignment"
     return xpath.replace(".xmap", "_partial.xmap")
-
-
-@func_timer
-def get_last_labels(reference_path: str) -> Dict[int, int]:
-    "returns last labels on chromosome"
-    cmap = read_map_file(reference_path)
-    return dict(zip(cmap["CMapId"], cmap["NumSites"]))
 
 
 # normalizing paths

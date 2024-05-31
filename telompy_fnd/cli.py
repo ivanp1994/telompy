@@ -15,13 +15,15 @@ from typing import List, Tuple, Dict, Union, Optional
 import numpy as np
 import pandas as pd
 
-from .funcs import calculate_telomere_lengths, get_xmap_statistics
+from .fnd_funcs import calculate_telomere_lengths, TelarmType
 from .utils import joinpaths, normfunc
+from .const import REF_TOL, MOL_TOL, DIS_TOL
 
 
 logger = logging.getLogger("telompy_fandom")
 
-parser = argparse.ArgumentParser(description="Extract lengths of telomeres from the alignment of FaNDOM app")
+parser = argparse.ArgumentParser(
+    description="Extract lengths of telomeres from the alignment of FaNDOM app")
 
 # POINTERS TO FILES
 parser.add_argument("-bnx", "--bnx", type=str, nargs="+", required=False,
@@ -45,6 +47,17 @@ parser.add_argument("-o", "--output", default="telomere_lengths",
 parser.add_argument("-t", "--threads", type=int, default=1,
                     help="Number of threads for parallel extraction")
 
+# OPTIONS FOR FILTERING
+parser.add_argument("-a", "--arms", type=str, nargs="+", choices=['l', 'L', 'R', 'r'], default=["L", "R"],
+                    help="Calculate telomeres on which arm of a chromosome - left (L) or right (R) or both (L R)")
+
+parser.add_argument("-rt", "--ref_tol", type=int, default=REF_TOL,
+                    help="Maximum number of unpaired labels on reference (AFTER LAST PAIR)")
+parser.add_argument("-mt", "--mol_tol", type=int, default=MOL_TOL,
+                    help="Maximum number of unpaired labels on molecule (AFTER LAST PAIR)")
+parser.add_argument("-dt", "--dis_tol", type=int, default=DIS_TOL,
+                    help="Maximal distance from the first/last aligned label to the respective end of the chromosome")
+
 
 # %% funcs
 
@@ -62,14 +75,16 @@ def load_config(conf: pd.DataFrame, ref: Optional[str] = None) -> Union[None, pd
             logger.error("No reference files provided")
             return None
         if len(ref) > 1:
-            logger.error("If reference is passed with --conf, then only one file is permitted")
+            logger.error(
+                "If reference is passed with --conf, then only one file is permitted")
             return None
         conf[2] = ref[0]
 
     # if this is true we have no names column
     # we take it from 0 th column
     if conf.shape[1] == 3:
-        conf[3] = conf[0].apply(lambda x: os.path.basename(x).replace(".xmap", ""))
+        conf[3] = conf[0].apply(
+            lambda x: os.path.basename(x).replace(".xmap", ""))
 
     # we now check for nans
     if conf.shape[1] == 4:
@@ -77,7 +92,8 @@ def load_config(conf: pd.DataFrame, ref: Optional[str] = None) -> Union[None, pd
         # do check for names
 
         conf[3] = conf.apply(
-            lambda row: os.path.basename(row[0]).replace('.xmap', '') if pd.isna(row[3]) else row[3],
+            lambda row: os.path.basename(row[0]).replace(
+                '.xmap', '') if pd.isna(row[3]) else row[3],
             axis=1
         )
 
@@ -124,7 +140,8 @@ def target_from_input(args: Dict[str, str]) -> Union[None, pd.DataFrame]:
         ref = ref*len(bnx_files)
     else:
         if len(ref) < len(xmap_files):
-            raise ValueError("Uneven references - pass either 1 or N references ")
+            raise ValueError(
+                "Uneven references - pass either 1 or N references ")
 
     return load_config(pd.DataFrame([xmap_files, bnx_files, ref, names]).T, None)
 
@@ -136,13 +153,16 @@ def validate_targets(targets: List[Tuple[str, str, str, str]]) -> List[Tuple[str
     new_targets = list()
     for target in targets:
         if not os.path.isfile(target[0]):
-            logger.error("No XMAP file at %s - will exclude it from calculation", target[0])
+            logger.error(
+                "No XMAP file at %s - will exclude it from calculation", target[0])
             continue
         if not os.path.isfile(target[1]):
-            logger.error("No BNX file at %s - will exclude it from calculation", target[1])
+            logger.error(
+                "No BNX file at %s - will exclude it from calculation", target[1])
             continue
         if not os.path.isfile(target[2]):
-            logger.error("No CMAP file at %s - will exclude it from calculation", target[2])
+            logger.error(
+                "No CMAP file at %s - will exclude it from calculation", target[2])
             continue
         new_targets.append(target)
     if not new_targets:
@@ -151,7 +171,7 @@ def validate_targets(targets: List[Tuple[str, str, str, str]]) -> List[Tuple[str
     return new_targets
 
 
-def validate_targets_target(args: Dict[str, str]) -> List[Tuple[str, str, str, str]]:
+def validate_targets_target(args: Dict[str, str]) -> List[Dict[str, str]]:
     "validates target files"
 
     target_conf = target_from_config(args)
@@ -173,32 +193,35 @@ def validate_targets_target(args: Dict[str, str]) -> List[Tuple[str, str, str, s
         targets[_c] = targets[_c].apply(normfunc)
 
     # turn a target into a list of tuples
-    targets = [tuple(row) for row in targets.to_records(index=False)] # pylint:disable=E1101
+    targets = [tuple(row) for row in targets.to_records(
+        index=False)]  # pylint:disable=E1101
 
     # check if they're real
     targets = validate_targets(targets)
+    # its a list of tuples - lets work it like this
+    # convert it from a list of tuples into a dictionary
+    # 0 xmap_path 1 bnx path 2 cmap_path 3 output_path
 
+    # convert to a list of dictionary
+    targets = [dict(zip(["xmap_path", "bnx_path", "cmap_path",
+                    "output_file"], argtuple)) for argtuple in targets]
     return targets
 
-# functions compatible with multiprocessing
 
-
-def calculate_telomere_lengths_unpacker(xmap_path: str, bnx_path: str, cmap_path: str, output_file: str) -> None:
-    "unpacks the calculation of telomeres - saving to file and returning stats"
-
-    if not output_file.endswith(".csv"):
-        output_file = output_file + ".csv"
-
-    out_df = calculate_telomere_lengths(xmap_path, bnx_path, cmap_path)
-    out_df.to_csv(output_file, index=False)
-    get_xmap_statistics(xmap_path)
-
-
-def calculate_telomere_lengths_wrapper(args: Tuple[str, str, str, str]) -> None:
+def calculate_telomere_lengths_wrapper(kwargs: Dict) -> None:
     "wrapper around function - for multiprocessing"
-    return calculate_telomere_lengths_unpacker(*args)
+    output_file = kwargs.pop("output_file")
+    out_df = calculate_telomere_lengths(**kwargs)
+    out_df.to_csv(output_file, index=False)
+    return None
 
 # cli target
+
+
+def reconfigure_arms(arms=List[str]
+                     ) -> TelarmType:
+    "reconfigures arms"
+    return [{"L": "left", "R": "right"}[k] for k in list(set(x.upper() for x in arms))]
 
 
 def command_line_target() -> None:
@@ -208,8 +231,19 @@ def command_line_target() -> None:
     args = vars(parser.parse_args())
 
     threads = args.pop("threads")
-    targets = validate_targets_target(args)
 
+    input_args = {k: v for k, v in args.items() if k in {
+        "bnx", "xmap", "ref", "name", "conf", "output"}}
+
+    targets = validate_targets_target(input_args)
+
+    func_args = {k: v for k, v in args.items() if k in
+                 {"arms", "ref_tol", "dis_tol", "mol_tol"}}
+    func_args["arms"] = reconfigure_arms(func_args["arms"])
+
+    # update dictionary with functional arguments
+
+    targets = [target.update(func_args) for target in targets]
     if threads == 1:
         for target in targets:
             calculate_telomere_lengths_wrapper(target)
