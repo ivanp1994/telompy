@@ -98,7 +98,8 @@ that can plop a label where there should be none.
 
 For example:
 
-**ADD IMAGE**
+![15_101](https://github.com/ivanp1994/telompy/assets/84333373/1e162922-3b25-4f14-b4e5-39aa798e7ec6)
+
 
 In the above image, there is a label on contig (marked yellow) that is not paired to the label of reference - the penultimate label on the contig maps
 to the last label on the reference. What happened here is that out of a bunch of molecules that assembled said contig, a sufficient number of molecules had
@@ -113,7 +114,8 @@ we are still counting 15 extra labels.
 
 One problem that can also occur:
 
-**ADD IMAGE**
+![1_lchrom](https://github.com/ivanp1994/telompy/assets/84333373/3779f077-4f82-4561-a5e2-6802ed011cef)
+
 
 In here, our first label is found good 3 million bases after the chromosome start. The first strech of the reference is unlabeled.
 We cannot reasonably call this a telomere - and to that extend we define the maximum distance between the first/last **aligned** label on the reference and the end of the chromosome it's on.
@@ -122,6 +124,7 @@ For mouse, as visualized above, left telomeres are annotated very poorly, and we
 
 
 # TelOMpy output structure
+
 The file is saved as a `CSV` file with the following columns:
 
 `RefContigID` - the ID of reference contig (the chromosome)
