@@ -3,8 +3,8 @@ A Python tool to determine individual (molecule) level of telomere lengths from 
 
 [![Licence](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/irahorecka/sgd-rest/main/LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-
-
+[![Typing](https://github.com/ivanp1994/telompy/actions/workflows/typehinting.yml/badge.svg)](https://github.com/ivanp1994/telompy/actions/workflows/typehinting.yml)
+[![Linting](https://github.com/ivanp1994/telompy/actions/workflows/flaking.yml/badge.svg)](https://github.com/ivanp1994/telompy/actions/workflows/flaking.yml)
 
 # TelOMPy usage for BNGO data
 ## Input and output parameters
