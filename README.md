@@ -199,12 +199,28 @@ or:
 [INFO] Went from 2520 to 2233 molecules (11.39 percent reduction)
 ```
 
+The next stats that are thrown at the stdout are:
+1. Correlation between molecule lengths and telomere lengths
+2. Z-testing between molecule lengths of telomeric molecules and expected molecule length
+
+Number one relates to the fact that the bigger the molecule, the bigger expected telomere length. We are using `pearsonr` with no correction for multiple testing as every element is calculated independently.
+Number two checks if the telomeric molecules differ significantly in length from the average expected molecule length. Expected molecule length is calculated as average molecule length of all molecules that 
+enter aligning process and this information can be found in `exp_informaticsReportSimple.json` file.
+
+Example:
+```
+[INFO] 03-1_-_De_novo_pipeline_results - LABEL_STATS - MoleculeLen/TelomereLen correlation 0.4464 with pvalue 0.00000000 
+[INFO] 03-1_-_De_novo_pipeline_results - LABEL_STATS - Difference from expected molecule length -  Cohen D is -0.2380 with pvalue 0.00000000 
+```
+
+
 # Structure of BNGO *de novo* assembly
 
 The (relevant) structure of an un-zipped BNGO assembly is as follows:
 
 ```
 output/
+└── exp_informaticsReportSimple.json
 └── contigs/
     └── auto_noise/
         └──autoNoise1_rescaled.bnx
