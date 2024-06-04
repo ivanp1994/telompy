@@ -5,17 +5,20 @@ Created on Wed May  8 10:11:51 2024
 @author: ivanp
 """
 import os
+import json
 import logging
 from typing import Iterable, Callable, Union, Literal, Optional, List
 from functools import partial
 from multiprocessing import Pool
 
 import pandas as pd
+from scipy import stats
 
 from .utils import read_map_file, joinpaths, func_timer
 from .const import (CONTIG_XMAP, CONTIG_QUERY,
                     CHROM_XMAP, CHROM_REFERENCE, CHROM_QUERY,
-                    REF_TOL, CON_TOL, MOL_TOL, DIS_TOL)
+                    REF_TOL, CON_TOL, MOL_TOL, DIS_TOL,
+                    INFREP)
 
 logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
 logger = logging.getLogger("telompy")
@@ -664,6 +667,68 @@ def reduce_dataset(data: pd.DataFrame, ref_tol: int,
                 original_len, len_new, 100 - len_new/original_len*100
                 )
     return input_df
+# %% MOLECULAR STATISTICS
+
+
+def correlation_test(telomeres: pd.DataFrame, name: str = "") -> None:
+    "tests pearson correlation between length of molecule and telomere"
+    corr, pval = stats.pearsonr(telomeres["MoleculeLen"], telomeres["TelomereLen"])
+    logger.info("%s - LABEL_STATS - MoleculeLen/TelomereLen correlation %.4f with pvalue %.8f ", name, corr, pval)
+
+
+def get_average_mol_len(path: str, jason: str = INFREP) -> Optional[float]:
+    "reads average molecule length from informatics report"
+    try:
+        with open(joinpaths(path, jason), "r",  encoding="utf-8") as _f:
+            # Load the JSON data into a Python dictionary
+            data = json.load(_f)
+    except FileNotFoundError:
+        logger.error("No informatics report found")
+        return None
+
+    inp_mol_stats = data.get("Input molecule stats (filtered)", None)
+
+    if not isinstance(inp_mol_stats, dict):
+        logger.error("Key %s not found", "Input molecule stats (filtered)")
+        return None
+
+    av_len = inp_mol_stats.get("Average length (kbp)", None)
+
+    if av_len is None:
+        logger.error("Key %s not found", "Average length (kbp)")
+        return None
+
+    return float(av_len) * 1000  # control for kilobases
+
+
+def t_test_mols(telomeres: pd.DataFrame, path: str, name: str = "",
+                jason: str = INFREP) -> None:
+    """
+    tests if telomeric molecules are different in length from the
+    average molecule
+    """
+    avlen = get_average_mol_len(path, jason)
+    if avlen is None:
+        return None
+
+    t_stat, pval = stats.ttest_1samp(telomeres["MoleculeLen"], avlen)
+
+    # one-sided cohen_d is just dividing t_stat by square root of N
+    cohen_d = t_stat / len(telomeres)**0.5
+
+    logger.info("%s - LABEL_STATS - Difference from expected molecule length -  Cohen D is %.4f with pvalue %.8f ", name, cohen_d, pval)
+
+
+def molecule_statistics(telomeres: pd.DataFrame, path: str, name: str = "",
+                        jason: str = INFREP) -> None:
+    """
+    Calculates relevant statistics:
+        1. Correlation of TelomereLen with MoleculeLen
+        2. P value of MoleculeLen with expected value of molecule len being
+        in informatics report along with CohenD
+    """
+    correlation_test(telomeres, name)
+    t_test_mols(telomeres, path, name, jason)
 
 
 def calculate_telomere_lengths(path: str,
@@ -678,6 +743,7 @@ def calculate_telomere_lengths(path: str,
     logger.info("Calculating telomere length for file found at %s", path)
 
     final_result = list()
+    name = os.path.basename(path)
 
     for option in how:
 
@@ -695,7 +761,7 @@ def calculate_telomere_lengths(path: str,
         _cols = ["RefContigID", "QryContigID", "UnpairedReferenceLabels",
                  "UnpairedContigLabels", "EndDistance"]
         stats_df = data[_cols].drop_duplicates()
-        name = os.path.basename(path)
+
         for _, row in stats_df.iterrows():
             display = ' , '.join(
                 [f"{index} : {value:.0f}" for index, value in row.items()])
@@ -708,5 +774,6 @@ def calculate_telomere_lengths(path: str,
         final_result = pd.concat(final_result, ignore_index=True)
     else:
         final_result = final_result[0]
-
+    # perform final testing
+    molecule_statistics(final_result, path, name, INFREP)
     return final_result
