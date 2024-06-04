@@ -169,6 +169,35 @@ I'll C/P what I've learned from BNGO's support:
 > The confidence is based on the average PPV (fraction of calls that are correct) for a large number of simulated insertions (or deletions) in the same size bin (eg 500-1000bp, 1kb-2kb etc) and same Pvalue or Likelihood ratio bin (whichever is less stringent, typically that is the Gaussian likelihood ratio, unless the insertion or deletion is near the end of the alignment, and the p-Value bins are 0.1+, 0.01-0.1, 0.001-)
 > **A confidence score of 0 could also indicate an area of high (or low) complexity, for which alignments were difficult to determine. It does not necessarily mean a variant should not be considered at all.**  
 
+# TelOMpy logging structure
+
+Other than finished `CSV` file, `telompy` also writes log to output. Output is in the form of `[LEVEL] message`.
+One input cointains `LABEL_STATS` flag which gives out the number of unpaired labels on the reference and contig level as well as the distance of the end of the chromosome to the relevant label.
+For example:
+
+```
+[INFO] 03-1_-_De_novo_pipeline_results - LABEL_STATS - RefContigID : 2 , QryContigID : 22 , UnpairedReferenceLabels : 0 , UnpairedContigLabels : 0 , EndDistance : 3060417
+```
+
+On chromosome number 2 for contig number 22, we have 0 unpaired references on both the contig and the chromosome, but our distance between the end of the chromosome and the aligned label (`EndDistance`) is roughly 300kbp.
+
+Additionally, the log includes detailes about filtering in the form of number of molecules excluded for that particular filter:
+
+```
+[INFO] Excluded EndDistance > 500000 from input_df - went from 3266 to 57 molecules (98.25 percent reduction)
+[INFO] Excluded UnpairedReferenceLabels > 0 from input_df - went from 57 to 0 molecules (100.00 percent reduction)
+[INFO] Went from 3266 to 0 molecules (100.00 percent reduction)
+```
+
+or:
+
+```
+[INFO] Excluded EndDistance > 500000 from input_df - went from 2520 to 2444 molecules (3.02 percent reduction)
+[INFO] Excluded UnpairedReferenceLabels > 0 from input_df - went from 2444 to 2233 molecules (8.63 percent reduction)
+[INFO] Excluded UnpairedContigLabels > 8 from input_df - went from 2233 to 2233 molecules (0.00 percent reduction)
+[INFO] Excluded UnpairedMoleculeLabels > 200 from input_df - went from 2233 to 2233 molecules (0.00 percent reduction)
+[INFO] Went from 2520 to 2233 molecules (11.39 percent reduction)
+```
 
 # Structure of BNGO *de novo* assembly
 
