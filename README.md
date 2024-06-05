@@ -1,7 +1,7 @@
 # TelOMPy
 A Python tool to determine individual (molecule) level of telomere lengths from optical mapping 
 
-[![Licence](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/irahorecka/sgd-rest/main/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/irahorecka/sgd-rest/main/LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Typing](https://github.com/ivanp1994/telompy/actions/workflows/typehinting.yml/badge.svg)](https://github.com/ivanp1994/telompy/actions/workflows/typehinting.yml)
 [![Linting](https://github.com/ivanp1994/telompy/actions/workflows/flaking.yml/badge.svg)](https://github.com/ivanp1994/telompy/actions/workflows/flaking.yml)
@@ -45,7 +45,7 @@ and
 
 `telompy -i BNGO/K55_-_De_novo_pipeline_results BNGO/K56_-_De_novo_pipeline_results -n 5455_Kidney_WD 5456_Kidney_WD -o telomeres_bngo -t 8
 `
-## Aditional parameters for filtering
+## Additional parameters for filtering
 There are five additional parameters that are used to filter out the data (for details, see *Theory of operations*):
 
 `--arms`/`-a` - Which ends of chromosomes to calculate telomeres (valid options are 'L' for left and 'R' for right, or 'L' and 'R' for both)
@@ -64,7 +64,7 @@ These parameters can be changed via CLI, but are also found in `const.py`, and r
 
 `-mx`/`--chrom_xmap` - an `XMAP` file of all contigs versus a reference
 
-`-mr`/`--chrom_reference` -a `CMAP` file of the reference (the final, presumably chromosome-level reefrence) 
+`-mr`/`--chrom_reference` -a `CMAP` file of the reference (the final, presumably chromosome-level reference) 
 
 `-cq`/`--chrom_query` - a `CMAP` file of assembled contigs, serves as an query against `chrom_reference`
 
@@ -81,7 +81,7 @@ Optical mapping, as implemented by Bionano Genomics (BNGO) is a technique that i
 assembling a complete map of an organism from the patterns of said marking.
 
 First off, we actually cannot determine *absolute* telomere length. Telomeres are repetitive sequences, and specific motifs recognized by BNGO enzymes cannot mark a telomere.
-What we can do, is determine the end point after (for the right end of  thechromosome) or before (for the left end of the chromosome) the last or the first label on the reference.
+What we can do, is determine the end point after (for the right end of the chromosome) or before (for the left end of the chromosome) the last or the first label on the reference.
 Visualized below:
 
 ![drawing-1](https://github.com/ivanp1994/telompy/assets/84333373/d1ae2dd4-6230-495f-a136-78d67b475a66)
@@ -125,13 +125,13 @@ One problem that can also occur:
 ![1_lchrom](https://github.com/ivanp1994/telompy/assets/84333373/3779f077-4f82-4561-a5e2-6802ed011cef)
 
 
-In here, our first label is found good 3 million bases after the chromosome start. The first strech of the reference is unlabeled.
+In here, our first label is found good 3 million bases after the chromosome start. The first stretch of the reference is unlabeled.
 We cannot reasonably call this a telomere - and to that extend we define the maximum distance between the first/last **aligned** label on the reference and the end of the chromosome it's on.
 So an additional parameter `dis_tol` is here to control that - the exact value of it depends on the annotation and the assembly of your model organism.
 For mouse, as visualized above, left telomeres are annotated very poorly, and we cannot reasonably calculate them, even as a *relative* value. 
 
 
-# TelOMpy output structure
+# TelOMPy output structure
 
 The file is saved as a `CSV` file with the following columns:
 
@@ -147,9 +147,9 @@ The file is saved as a `CSV` file with the following columns:
 
 `MoleculeConfidence` - the confidence score of Molecule-Contig assembly
 
-`AlignedLabelPosition` - the position (in nucleotide basepairs) of the first/last aligned label on the reference
+`AlignedLabelPosition` - the position (in nucleotide base-pairs) of the first/last aligned label on the reference
 
-`BoundReferencePosition` - the position (in nucleotide basepairs) of the first/last label on the reference
+`BoundReferencePosition` - the position (in nucleotide base-pairs) of the first/last label on the reference
 
 `UnpairedReferenceLabels` - the number of labels on the reference before/after the last aligned label
 
@@ -157,7 +157,7 @@ The file is saved as a `CSV` file with the following columns:
 
 `UnpairedMoleculeLabels` - the number of labels on the molecule before/after the last aligned label
 
-`EndDistance` - the distance (in nucleotide basepairs) between the start/end of the chromosome and first/last aligned label
+`EndDistance` - the distance (in nucleotide base-pairs) between the start/end of the chromosome and first/last aligned label
 
 `MoleculeLen` - the length of the molecule
 
@@ -168,19 +168,19 @@ The file is saved as a `CSV` file with the following columns:
 - - -
 Some notes:
 
-"AlignedLabelPosition" and "BoundReferencePosition" will be equal if "UnpariedReferenceLabels" is 0.
+"AlignedLabelPosition" and "BoundReferencePosition" will be equal if "UnpairedReferenceLabels" is 0.
 
 "MoleculeConfidence" is defined as "Negative Log10 of p-value of alignment" and details can be found in Bionano's Theory of Operations - Structural Variant Calling pdf document.
 I'll C/P what I've learned from BNGO's support:
 >There is a general description on page 17, and more in the appendix sections for different variant types. Please also find a more detailed description for the p-values for insertions and deletions confidence scores below and in the attached pdf (publication on which the modeling is based):
 > The non-normalized likelihood ratio for the insertion or deletion region is based on Gaussian error likelihood and the ratio of label interval vs Gaussian SD
-> The confidence is based on the average PPV (fraction of calls that are correct) for a large number of simulated insertions (or deletions) in the same size bin (eg 500-1000bp, 1kb-2kb etc) and same Pvalue or Likelihood ratio bin (whichever is less stringent, typically that is the Gaussian likelihood ratio, unless the insertion or deletion is near the end of the alignment, and the p-Value bins are 0.1+, 0.01-0.1, 0.001-)
+> The confidence is based on the average PPV (fraction of calls that are correct) for a large number of simulated insertions (or deletions) in the same size bin (eg 500-1000bp, 1kb-2kb etc.) and same P-value or Likelihood ratio bin (whichever is less stringent, typically that is the Gaussian likelihood ratio, unless the insertion or deletion is near the end of the alignment, and the p-Value bins are 0.1+, 0.01-0.1, 0.001-)
 > **A confidence score of 0 could also indicate an area of high (or low) complexity, for which alignments were difficult to determine. It does not necessarily mean a variant should not be considered at all.**  
 
 # TelOMpy logging structure
 
 Other than finished `CSV` file, `telompy` also writes log to output. Output is in the form of `[LEVEL] message`.
-One input cointains `LABEL_STATS` flag which gives out the number of unpaired labels on the reference and contig level as well as the distance of the end of the chromosome to the relevant label.
+One input contains `LABEL_STATS` flag which gives out the number of unpaired labels on the reference and contig level as well as the distance of the end of the chromosome to the relevant label.
 For example:
 
 ```
@@ -189,7 +189,7 @@ For example:
 
 On chromosome number 2 for contig number 22, we have 0 unpaired references on both the contig and the chromosome, but our distance between the end of the chromosome and the aligned label (`EndDistance`) is roughly 300kbp.
 
-Additionally, the log includes detailes about filtering in the form of number of molecules excluded for that particular filter:
+Additionally, the log includes details about filtering in the form of number of molecules excluded for that particular filter:
 
 ```
 [INFO] Excluded EndDistance > 500000 from input_df - went from 3266 to 57 molecules (98.25 percent reduction)
@@ -207,7 +207,7 @@ or:
 [INFO] Went from 2520 to 2233 molecules (11.39 percent reduction)
 ```
 
-The next stats that are thrown at the stdout are:
+The next stats that are thrown at the standard-output are:
 1. Correlation between molecule lengths and telomere lengths
 2. Z-testing between molecule lengths of telomeric molecules and expected molecule length
 
