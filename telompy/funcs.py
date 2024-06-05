@@ -11,6 +11,7 @@ from typing import Iterable, Callable, Union, Literal, Optional, List
 from functools import partial
 from multiprocessing import Pool
 
+import numpy as np
 import pandas as pd
 from scipy import stats
 
@@ -673,7 +674,8 @@ def reduce_dataset(data: pd.DataFrame, ref_tol: int,
 def correlation_test(telomeres: pd.DataFrame, name: str = "") -> None:
     "tests pearson correlation between length of molecule and telomere"
     corr, pval = stats.pearsonr(telomeres["MoleculeLen"], telomeres["TelomereLen"])
-    logger.info("%s - LABEL_STATS - MoleculeLen/TelomereLen correlation %.4f with pvalue %.8f ", name, corr, pval)
+    pval = np.log10(pval)
+    logger.info("%s - LABEL_STATS - MoleculeLen/TelomereLen correlation %.4f with log(pvalue) %.8f ", name, corr, pval)
 
 
 def get_average_mol_len(path: str, jason: str = INFREP) -> Optional[float]:
@@ -716,7 +718,8 @@ def t_test_mols(telomeres: pd.DataFrame, path: str, name: str = "",
     # one-sided cohen_d is just dividing t_stat by square root of N
     cohen_d = t_stat / len(telomeres)**0.5
 
-    logger.info("%s - LABEL_STATS - Difference from expected molecule length -  Cohen D is %.4f with pvalue %.8f ", name, cohen_d, pval)
+    pval = np.log10(pval)
+    logger.info("%s - LABEL_STATS - Difference from expected molecule length -  Cohen D is %.4f with log(pvalue) %.8f ", name, cohen_d, pval)
 
 
 def molecule_statistics(telomeres: pd.DataFrame, path: str, name: str = "",
