@@ -6,6 +6,23 @@ A Python tool to determine individual (molecule) level of telomere lengths from 
 [![Typing](https://github.com/ivanp1994/telompy/actions/workflows/typehinting.yml/badge.svg)](https://github.com/ivanp1994/telompy/actions/workflows/typehinting.yml)
 [![Linting](https://github.com/ivanp1994/telompy/actions/workflows/flaking.yml/badge.svg)](https://github.com/ivanp1994/telompy/actions/workflows/flaking.yml)
 
+## Installation and usage
+
+The only things required are `pandas` and `scipy`, as outlined in `requirements.txt`. 
+
+As of now, it's not published on `pip`, and installation consists of cloning this repository and installing it locally by running `pip install .` from the directory. 
+
+Additionally, a singularity/apptainer definition file is given in `telompy.def`.
+You can build an apptainer with the command:
+
+`apptainer build telompy.sif telompy.def` (or instead of `telompy.sif˙ you can name singularity image file whatever you want)
+
+and afterwards you can run `telompy` from the build image by prefixing it with:
+
+`apptainer exec telompy.sif`
+
+It can be used as a Python API (the main function being `calculate_telomere_lengths`) which takes all the parameters the CLI tool takes and it can be used from the CLI via `telompy` command.
+
 # TelOMPy usage for BNGO data
 ## Input and output parameters
 The primary input for `telompy` is a folder with BNGO assembly which is downloaded either from Bionano Access or is the output of Bionano Solve. The structure of said folder (and relevant files) are elucidated in *Structure of BNGO de novo assembly*.
@@ -31,7 +48,7 @@ and
 ## Aditional parameters for filtering
 There are five additional parameters that are used to filter out the data (for details, see *Theory of operations*):
 
-`--arms`/`-a` - Which ends of chromosomes to calculate telomeres (valid options are 'L' for left and 'R' for right, or 'L' and 'R' for both
+`--arms`/`-a` - Which ends of chromosomes to calculate telomeres (valid options are 'L' for left and 'R' for right, or 'L' and 'R' for both)
 
 `--ref_tol`/`-rt` - Maximum number of unpaired labels on the reference (chromosome) after/before the last aligned pair
 
@@ -54,15 +71,6 @@ These parameters can be changed via CLI, but are also found in `const.py`, and r
 `-cf`/`--contig_xmap_format` - an `XMAP` file of queried molecules against a *de novo* assembly of queried molecules
 
 `-qc`/`--contig_query_format` - a `CMAP` file of molecules that serves as a query, and first step of assembly
-
-
-## Installation and usage
-
-The only thing required is pandas, as outlined in `requirements.txt`. 
-Additionally, a singularity/apptainer definition file is given in `telompy.def`. 
-
-It can be used as a Python API (the main function being `calculate_telomere_lengths`) which takes all the parameters the CLI tool takes,
-and it can be used from the CLI.
 
 # Theory of operation
 
@@ -209,8 +217,8 @@ enter aligning process and this information can be found in `exp_informaticsRepo
 
 Example:
 ```
-[INFO] 03-1_-_De_novo_pipeline_results - LABEL_STATS - MoleculeLen/TelomereLen correlation 0.4464 with pvalue 0.00000000 
-[INFO] 03-1_-_De_novo_pipeline_results - LABEL_STATS - Difference from expected molecule length -  Cohen D is -0.2380 with pvalue 0.00000000 
+[INFO] 03-1_-_De_novo_pipeline_results  - LABEL_STATS - MoleculeLen/TelomereLen correlation 0.3526 with log(pvalue) -175.01891988 
+[INFO] 03-1_-_De_novo_pipeline_results  - LABEL_STATS - Difference from expected molecule length -  Cohen D is -0.2524 with log(pvalue) -82.15019104 
 ```
 
 
