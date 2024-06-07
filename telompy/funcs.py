@@ -187,6 +187,7 @@ def get_first_query_bound_reference(align_str: str, how: Literal["left", "right"
 
 def get_number_of_unpaired_contig_labels(path: Union[str, pd.DataFrame], alignment: str, qrycontigid: int,
                                          orientation: Literal["-", "+"], telarm: Literal["left", "right"],
+                                         master_orientation: Literal["-", "+"],
                                          chrom_query: str = CHROM_QUERY) -> int:
     """
     This function returns number of unpaired labels on the contig (query).
@@ -261,8 +262,9 @@ def get_number_of_unpaired_contig_labels(path: Union[str, pd.DataFrame], alignme
 
     map_orient = {"+": 1, "-": -1}[orientation]
     map_telarm = {"left": 1, "right": -1}[telarm]
+    map_morient = {"+": 1, "-": -1}[master_orientation]
 
-    mult = map_orient * map_telarm
+    mult = map_orient * map_telarm * map_morient
 
     # if mult is positive we return last label
     if mult == 1:
@@ -293,6 +295,7 @@ def get_number_of_unpaired_contig_labels(path: Union[str, pd.DataFrame], alignme
 
 
 def _gnoucl(subrow: pd.Series, molecules: pd.DataFrame, telarm: Literal["left", "right"],
+            master_orientation=Literal["+", "-"],
             chrom_query: str = CHROM_QUERY) -> pd.Series:
     """
     A wrapper around 'get_number_of_unpaired_contig_labels'
@@ -306,7 +309,9 @@ def _gnoucl(subrow: pd.Series, molecules: pd.DataFrame, telarm: Literal["left", 
                                                 qrycontigid=qry_id,
                                                 orientation=orient,
                                                 telarm=telarm,
+                                                master_orientation=master_orientation,
                                                 chrom_query=chrom_query)
+# %%
 
 
 def alignments_to_reference(xmap_df: pd.DataFrame, label: int) -> pd.DataFrame:
@@ -412,61 +417,13 @@ def remap_query_position(contig_aligned: pd.DataFrame, molecules: pd.DataFrame, 
     return contig_aligned
 
 
-def calculate_telomere_length_formula(row: pd.Series, telarm: Literal["left", "right"]) -> pd.Series:
+# %%
+def calculate_telomere_length_formula(row: pd.Series, telarm: Literal["left", "right"],
+                                      master_orientation: Literal["+", "-"]) -> pd.Series:
     """
     This function calculates the length of telomere.
 
-    What we consider the length of a telomere is what peeks out
-    after the last aligned label on the reference.
-    For example:
-        R : ------|----------------]
-        C : ------|------------------------]
-        TL:       |------------------------]
-    Or:
-        R:        [---------|----------------
-        C:  [---------------|----------------
-        TL: [---------------|
-
-    Depending on which arm ('left' or 'right') we're looking at, calculations
-    are slightly different.
-
-
-    DETAILS:
-
-        # when we have left, we have the following scenarios
-        # R : [------------|-------------
-        #                  1
-        # C : [---|---|----|-----|----|--
-        # +       1   2    3     4    5
-        # -       5   4    3     2    1
-
-        # In the case of positive orientation, telomere will be equal to LABELBASE
-        # In the case of negative orientation, labels will be equal to LEN - LABEBASE
-        # where LABELBASE is the nucleotide position of label that aligns to reference
-        # and LEN is equal to the length of the label
-
-        # when we have right, we have the following scenarios
-        # R : --------------|--------------]
-        #                   N
-        # C : ----|----|----|-----|-----|--]
-        # +       1    2    3     4     5
-        # -       5    4    3     2     1
-
-        # In the case of positive orientation, labels will be equal to LEN - LABEBASE
-        # In the case of negative orientation, labels will be equal to LABELBASE
-
-        # to sum up
-        # LABELBASE | (telarm=left,orientation=+) | (telarm=right,orientation=-)
-        # LEN - LABEBASE | (telarm=left,orientation=-) | (telarm=right,orientation=+)
-
-
-        # if we map {left:1,right:-1} , {+:1,-:-1}
-        # LABELBASE | (telarm=1,orientation=1) | (telarm=-1,orientation=-1)
-        # LEN - LABEBASE | (telarm=1,orientation=-1) | (telarm=-1,orientation=1)
-
-        # if we get mult
-        # LABELBASE | telarm x orientation = 1
-        # LEN - LABEBASE  | telarm x orientation -1
+    TODO - better documentation
     """
 
     orientation = row["Orientation"]
@@ -475,8 +432,9 @@ def calculate_telomere_length_formula(row: pd.Series, telarm: Literal["left", "r
 
     map_orient = {"+": 1, "-": -1}[orientation]
     map_telarm = {"left": 1, "right": -1}[telarm]
+    map_morient = {"+": 1, "-": -1}[master_orientation]
 
-    mult = map_orient * map_telarm
+    mult = map_orient * map_telarm * map_morient
 
     if mult == 1:
         return pos
@@ -498,7 +456,8 @@ def calculate_telomere(row: pd.Series, path: str,
     contig_alignment: str = row["Alignment"]
 
     # pathings of contig XMAP and contig as _q.cmap
-    contig_path: str = joinpaths(path, contig_xmap_format.format(x=master_contig))
+    contig_path: str = joinpaths(
+        path, contig_xmap_format.format(x=master_contig))
     molecules_path: str = joinpaths(
         path, contig_query_format.format(x=master_contig))
 
@@ -531,11 +490,13 @@ def calculate_telomere(row: pd.Series, path: str,
                                                                                   alignment=row["Alignment"],
                                                                                   qrycontigid=row["QryContigID"],
                                                                                   orientation=row["Orientation"],
-                                                                                  chrom_query=chrom_query, telarm=telarm
+                                                                                  chrom_query=chrom_query, telarm=telarm,
+                                                                                  master_orientation="+",  # necessary for the formula
                                                                                   )
 
     contig_aligned["UnpairedMoleculeLabels"] = contig_aligned.apply(_gnoucl, axis=1,   # pylint:disable=E1101,E1137
-                                                                    molecules=molecules, telarm=telarm)
+                                                                    molecules=molecules, telarm=telarm,
+                                                                    master_orientation=row["Orientation"])
 
     # calculate telomeres
     # first remap position
@@ -544,7 +505,8 @@ def calculate_telomere(row: pd.Series, path: str,
 
     # then perform formula
     contig_aligned["TelomereLen"] = contig_aligned.apply(
-        calculate_telomere_length_formula, axis=1, telarm=telarm)
+        calculate_telomere_length_formula, axis=1, telarm=telarm,
+        master_orientation=row["Orientation"])
 
     # refactor contig for easier data insertion
     contig_aligned = contig_aligned[["QryContigID", "RefContigID", "Orientation", "Confidence",
@@ -673,9 +635,11 @@ def reduce_dataset(data: pd.DataFrame, ref_tol: int,
 
 def correlation_test(telomeres: pd.DataFrame, name: str = "") -> None:
     "tests pearson correlation between length of molecule and telomere"
-    corr, pval = stats.pearsonr(telomeres["MoleculeLen"], telomeres["TelomereLen"])
+    corr, pval = stats.pearsonr(
+        telomeres["MoleculeLen"], telomeres["TelomereLen"])
     pval = np.log10(pval)
-    logger.info("%s - LABEL_STATS - MoleculeLen/TelomereLen correlation %.4f with log(pvalue) %.8f ", name, corr, pval)
+    logger.info(
+        "%s - LABEL_STATS - MoleculeLen/TelomereLen correlation %.4f with log(pvalue) %.8f ", name, corr, pval)
 
 
 def get_average_mol_len(path: str, jason: str = INFREP) -> Optional[float]:
@@ -761,7 +725,7 @@ def calculate_telomere_lengths(path: str,
         data = pd.concat(data, axis=0, ignore_index=True)
 
         # display statistics about unpaired labels
-        _cols = ["RefContigID", "QryContigID", "UnpairedReferenceLabels",
+        _cols = ["RefContigID", "QryContigID", "UnpairedReferenceLabels", "ContigOrientation",
                  "UnpairedContigLabels", "EndDistance"]
         stats_df = data[_cols].drop_duplicates()
 
