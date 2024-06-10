@@ -1,8 +1,8 @@
 
 from setuptools import setup, find_packages
 
-# with open("README.md", "r") as _f:
-#    long_description = _f.read()
+with open("README.md", "r") as _f:
+    long_description = _f.read()
 
 with open("requirements_dev.txt", "r") as _f:
     extra_reqs = _f.read().strip().split("\n")
@@ -10,7 +10,7 @@ with open("requirements_dev.txt", "r") as _f:
 with open("requirements.txt", "r") as _f:
     install_reqs = _f.read().strip().split("\n")
 
-setup(name="TelOMpy",
+setup(name="TelOMpy_fnd",
       version="0.0.1",
       description="Python based calculator for length of telomers from BNGO de novo assembly",
       packages=find_packages(),
@@ -31,7 +31,7 @@ setup(name="TelOMpy",
                       },
       entry_points={
           'console_scripts': [
-              'telompy = telompy_fnd.cli:command_line_target',
-              'telompy_validate = telompy_fnd.cli:validate_targets_target'
+              'telompy_fnd = telompy_fnd.cli:command_line_target',
+              
           ]}
       )

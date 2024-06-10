@@ -8,14 +8,14 @@ import os
 import logging
 from typing import (List, Set, Generator,
                     Tuple, Dict,
-                    Optional, Literal,Union)
+                    Optional, Literal, Union)
 
 import numpy as np
 import pandas as pd
 
 from .utils import (func_timer,  get_partial_alignment,
                     count_comment_lines, read_map_file)
-from .const import REF_TOL,MOL_TOL,DIS_TOL
+from .const import REF_TOL, MOL_TOL, DIS_TOL
 
 logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
 logger = logging.getLogger("telompy_fandom")
@@ -25,7 +25,8 @@ TelarmType = Union[
     List[Literal["right"]],
     List[Literal["left", "right"]]
 ]
-#%% FUNCTIONS REUSED FROM BNGO BRANCH
+# %% FUNCTIONS REUSED FROM BNGO BRANCH
+
 
 def fish_starting_aligned_label(xmap_df: pd.DataFrame,
                                 how: Literal["left", "right"]) -> pd.DataFrame:
@@ -106,9 +107,8 @@ def fish_offsets(aligned: pd.DataFrame, reference_cmap: pd.DataFrame, how: Liter
 
     aligned_positions["OffsetLabel"] = abs(
         aligned_positions["SiteID"] - aligned_positions["FirstID"])
-    
-    
-    return aligned_positions # it returns Position
+
+    return aligned_positions  # it returns Position
 
 
 def fish_paired_label(master_xmap: pd.DataFrame, master_cmap: pd.DataFrame, how: Literal["left", "right"],
@@ -148,7 +148,8 @@ def fish_paired_label(master_xmap: pd.DataFrame, master_cmap: pd.DataFrame, how:
 
     return aligned_pair
 
-#%% FUNCTIONS FOR FANDOM BRANCH
+# %% FUNCTIONS FOR FANDOM BRANCH
+
 
 @func_timer
 def read_fandom_xmap(xmap_path: str, ref_path: str,
@@ -158,11 +159,11 @@ def read_fandom_xmap(xmap_path: str, ref_path: str,
     master_cmap = read_map_file(ref_path)
     skiprows = count_comment_lines(xmap_path)
     elements = list()
-    
+
     with pd.read_csv(xmap_path, chunksize=chunksize, sep="\t",
-                     skiprows=skiprows, usecols=[1, 2,5,6, 7,8, 11,13,],
-                     names=["QryContigID", "RefContigID", "RefStartPos","RefEndPos",
-                            "Orientation", "Confidence","RefLen","Alignment"]
+                     skiprows=skiprows, usecols=[1, 2, 5, 6, 7, 8, 11, 13, ],
+                     names=["QryContigID", "RefContigID", "RefStartPos", "RefEndPos",
+                            "Orientation", "Confidence", "RefLen", "Alignment"]
                      ) as reader:
 
         for chunk in reader:
@@ -184,7 +185,6 @@ def read_fandom_xmap(xmap_path: str, ref_path: str,
 
     data["TelomereArm"] = data["TelomereArm"].map({"left": 1, "right": -1})
 
-
     # TODO - maybe do it smarter, without str
     # but would apply be slower?
     # does it matter?
@@ -192,32 +192,35 @@ def read_fandom_xmap(xmap_path: str, ref_path: str,
     # Use regex to extract all pairs into lists of tuples
     data['AlignmentPairs'] = data['Alignment'].str.findall(r'\((\d+),(\d+)\)')
     # Convert the lists of tuples from strings to integers
-    data['AlignmentPairs'] = data['AlignmentPairs'].apply(lambda x: [(int(a), int(b)) for a, b in x])
+    data['AlignmentPairs'] = data['AlignmentPairs'].apply(
+        lambda x: [(int(a), int(b)) for a, b in x])
     # Create the "QueryLabel" column by finding the corresponding second element for each SiteID
-    data['QueryLabel'] = data.apply(lambda row: next((b for a, b in row['AlignmentPairs'] if a == row['SiteID']), None), axis=1)
+    data['QueryLabel'] = data.apply(lambda row: next(
+        (b for a, b in row['AlignmentPairs'] if a == row['SiteID']), None), axis=1)
     # Drop the intermediate 'AlignmentPairs' column
     data = data.drop(columns=['AlignmentPairs'],)
-    
+
     # now calculate the distance from the chromosome' ends to first/last aligned label
     data['EndDistance'] = np.where(
-    data['TelomereArm'] == 1,
-    data['RefStartPos'],
-    data['RefLen'] - data['RefEndPos']
+        data['TelomereArm'] == 1,
+        data['RefStartPos'],
+        data['RefLen'] - data['RefEndPos']
     )
-    
+
     # also get AlignedLabelPosition - position of first/last aligned label on the chromosome
     data['AlignedLabelPosition'] = np.where(
-    data['TelomereArm'] == 1,
-    data['RefStartPos'],
-    data['RefEndPos']
+        data['TelomereArm'] == 1,
+        data['RefStartPos'],
+        data['RefEndPos']
     )
     # select only specific columns
-    cols = ["QryContigID", "RefContigID", "Orientation","Confidence","TelomereArm","OffsetLabel", "QueryLabel","EndDistance","AlignedLabelPosition","BoundReferencePosition"]
+    cols = ["QryContigID", "RefContigID", "Orientation", "Confidence", "TelomereArm",
+            "OffsetLabel", "QueryLabel", "EndDistance", "AlignedLabelPosition", "BoundReferencePosition"]
     data = data[cols]
     # rename those columns
-    cols = ["QryContigID", "RefContigID", "MoleculeOrientation","MoleculeConfidence","TelomereArm","UnpairedReferenceLabels", "QueryLabel","EndDistance","AlignedLabelPosition","BoundReferencePosition"]
+    cols = ["QryContigID", "RefContigID", "MoleculeOrientation", "MoleculeConfidence", "TelomereArm",
+            "UnpairedReferenceLabels", "QueryLabel", "EndDistance", "AlignedLabelPosition", "BoundReferencePosition"]
     data.columns = cols
-   
 
     return data[cols].reset_index(drop=True)
 
@@ -266,47 +269,48 @@ def read_queried_molecules(path: str, queried_molecules: Set[str]) -> List[np.ar
     return [np.array(a, dtype=float) for a in
             bnx_generator(path=path, queried_molecules=queried_molecules)]
 
-#%% telomere function
+# %% telomere function
+
+
 @func_timer
-def calculate_telomeres(telomeric_mols:List[np.array],telomeric_align_df:pd.DataFrame)->pd.DataFrame:
-    
+def calculate_telomeres(telomeric_mols: List[np.array], telomeric_align_df: pd.DataFrame) -> pd.DataFrame:
+
     # get columns relevant for calculation
     qry_id_col = telomeric_align_df.columns.get_loc("QryContigID")
     orientation_col = telomeric_align_df.columns.get_loc("MoleculeOrientation")
     telomere_col = telomeric_align_df.columns.get_loc("TelomereArm")
     qry_label_col = telomeric_align_df.columns.get_loc("QueryLabel")
 
-    
     telomeric_alns = telomeric_align_df.values
-    
+
     # BEGIN NUMPY CODE
     # use numpy array
-    
+
     result_array = np.zeros((len(telomeric_mols), 4))
-    
+
     for i, molecule in enumerate(telomeric_mols):
         # get alignment of specific molecule
         align = telomeric_alns[telomeric_alns[:, qry_id_col] == molecule[0]]
-        
+
         # in our values, our columns for orientation and telomere arm
         # are 2 and 3
-         
-        orient = align[0,orientation_col]
-        telarm = align[0,telomere_col]
-        
+
+        orient = align[0, orientation_col]
+        telarm = align[0, telomere_col]
+
         # our column for query label is 6
-        query_label_idx = int(align[0,qry_label_col])
-        
-        # nucleotide label position is 
-        query_label_nucleotide = molecule[query_label_idx]  
-        
+        query_label_idx = int(align[0, qry_label_col])
+
+        # nucleotide label position is
+        query_label_nucleotide = molecule[query_label_idx]
+
         # length of the molecule is the last value
         query_len = molecule[-1]
-        
+
         # get the number of unpaired molecules
         # total number of labels is when you exclude first (ID) and last (LEN)
         # base
-        
+
         # if we get mult
         # LABELPOS-1 | telarm x orientation = 1
         # N-LABELPOS | telarm x orientation -1
@@ -318,16 +322,19 @@ def calculate_telomeres(telomeric_mols:List[np.array],telomeric_align_df:pd.Data
         if orient * telarm == -1:
             tlen = query_len - query_label_nucleotide
             unpaired_labels = num_labs_query - query_label_idx
-        
-        result_array[i, :] = [molecule[0], tlen, unpaired_labels,query_len]
+
+        result_array[i, :] = [molecule[0], tlen, unpaired_labels, query_len]
     # END NUMPY CODE
-    result_df = pd.DataFrame(result_array,columns=["QryContigID","TelomereLen","UnpairedMoleculeLabels","MoleculeLen"])
-  
-    result_df = pd.merge(telomeric_align_df,result_df,left_on="QryContigID",right_on="QryContigID")
-    result_df["Telomere"] = result_df["TelomereArm"].map({1:"left",-1:"right"})
-    result_df = result_df.drop("TelomereArm",axis=1)
-    
-    #reorder cols to be in line with BNGo
+    result_df = pd.DataFrame(result_array, columns=[
+                             "QryContigID", "TelomereLen", "UnpairedMoleculeLabels", "MoleculeLen"])
+
+    result_df = pd.merge(telomeric_align_df, result_df,
+                         left_on="QryContigID", right_on="QryContigID")
+    result_df["Telomere"] = result_df["TelomereArm"].map(
+        {1: "left", -1: "right"})
+    result_df = result_df.drop("TelomereArm", axis=1)
+
+    # reorder cols to be in line with BNGo
     cols = ["RefContigID",
             "QryContigID",
             "MoleculeOrientation",
@@ -338,13 +345,11 @@ def calculate_telomeres(telomeric_mols:List[np.array],telomeric_align_df:pd.Data
             "UnpairedMoleculeLabels",
             "EndDistance",
             "MoleculeLen",
-            "Telomere", # tis is TelomereArm but returned to 'left' 'right'
+            "Telomere",  # tis is TelomereArm but returned to 'left' 'right'
             "TelomereLen",
             "FullAlignment"
             ]
     return result_df[cols]
-
-
 
 
 # %% FINAL FUNCTIONS - FOR DISPLAYING INFORMATION AND CALCULATING STATISTICS
@@ -362,8 +367,6 @@ def get_rough_xmap_stats(xmap_df: pd.DataFrame(), suffix: str = "") -> Tuple[Dic
     if len(xmap_df) == 0:
         return dict(), set()
 
-
-
     stats_dict = dict()
 
     stats_dict[f"qrylen_mean_{suffix}"] = xmap_df["MoleculeLen"].mean()
@@ -376,10 +379,11 @@ def get_rough_xmap_stats(xmap_df: pd.DataFrame(), suffix: str = "") -> Tuple[Dic
 
     stats_dict[f"molecules_{suffix}"] = len(xmap_df)
     stats_dict[f"unique_mols_{suffix}"] = len(unique_mols) / len(xmap_df)
-    
+
     return stats_dict, unique_mols
 
-def get_xmap_statistics(xmap_df:pd.DataFrame,name:Optional[str]=None) -> Dict[str, float]:
+
+def get_xmap_statistics(xmap_df: pd.DataFrame, name: Optional[str] = None) -> Dict[str, float]:
     """
     Gets rough statistics for two rounds of alignment via FaNDOM.
     Statistics include:
@@ -391,12 +395,12 @@ def get_xmap_statistics(xmap_df:pd.DataFrame,name:Optional[str]=None) -> Dict[st
         How many molecules are in both alignment ('joint_mols')
         Jaccard similarity of molecules of both alignments ('jaccard_btw_alns')
     """
-    
-    xmap_full = xmap_df.loc[xmap_df.FullAlignment==1]
-    xmap_part = xmap_df.loc[xmap_df.FullAlignment==0]
-    
+
+    xmap_full = xmap_df.loc[xmap_df.FullAlignment == 1]
+    xmap_part = xmap_df.loc[xmap_df.FullAlignment == 0]
+
     #name = os.path.basename(xmap_path).replace(".xmap", "")
-    
+
     stats_full, mols_full = get_rough_xmap_stats(xmap_full, "full_alignment")
     stats_part, mols_part = get_rough_xmap_stats(xmap_part, "partial_alignmet")
 
@@ -404,27 +408,34 @@ def get_xmap_statistics(xmap_df:pd.DataFrame,name:Optional[str]=None) -> Dict[st
     stats.update(stats_part)
     if mols_part:
         bothmols = len(mols_full.intersection(mols_part))
-        jacc = len(mols_full.intersection(mols_part))/len(mols_full.union(mols_part))
+        jacc = len(mols_full.intersection(mols_part)) / \
+            len(mols_full.union(mols_part))
         stats["joint_mols"] = bothmols
         stats["jaccard_btw_alns"] = jacc
     for k, v in stats.items():
         logger.info("%s - STATS: '%s': %f", name, k, v)
-        
+
     # return stats
-    
-def descriptive_telomere_stats(telomere_df:pd.DataFrame,name:Optional[str]=None,
-                               groupby:List[str]=["RefContigID","FullAlignment","Telomere"]
-                               )->None:
+
+
+def descriptive_telomere_stats(telomere_df: pd.DataFrame, name: Optional[str] = None,
+                               groupby: List[str] = [
+                                   "RefContigID", "FullAlignment", "Telomere"]
+                               ) -> None:
     "Gets descriptive statistics abuot length of telomeres"
     desc = telomere_df.groupby(groupby)["TelomereLen"].describe()
-    
+
     for _, row in desc.iterrows():
-        name = dict(zip(["RefContigID","FullAlignment","Telomere"], row.name))
-        name = " , ".join([f"{k}:{v}" for k,v in name.items()])+" | "
-        display = ' , '.join([f"{index} : {value:.0f}" for index, value in row.items()])
+        name = dict(
+            zip(["RefContigID", "FullAlignment", "Telomere"], row.name))
+        name = " , ".join([f"{k}:{v}" for k, v in name.items()])+" | "
+        display = ' , '.join(
+            [f"{index} : {value:.0f}" for index, value in row.items()])
         logger.info("%s - TELOMERE_STATS - %s", name, name + display)
 
 # FILTERING
+
+
 def reduce_dataset(data: pd.DataFrame, ref_tol: int,
                    mol_tol: int, dis_tol: int) -> pd.DataFrame:
     """
@@ -474,11 +485,11 @@ def reduce_dataset(data: pd.DataFrame, ref_tol: int,
 
 
 def calculate_telomere_lengths(xmap_path: str, bnx_path: str, cmap_path: str,
-                               partial=True, chunksize:int = 500000,
-                               arms:Optional[TelarmType]=["left","right"],
-                               pxmap_path:Optional[str]=None,
-                               ref_tol:int=REF_TOL,mol_tol:int=MOL_TOL,
-                               dis_tol:int=DIS_TOL) -> pd.DataFrame:
+                               partial=True, chunksize: int = 500000,
+                               arms: Optional[TelarmType] = ["left", "right"],
+                               pxmap_path: Optional[str] = None,
+                               ref_tol: int = REF_TOL, mol_tol: int = MOL_TOL,
+                               dis_tol: int = DIS_TOL) -> pd.DataFrame:
     """
     Calculates telomere length. Requires an aligment file in XMAP format,
     an input file in BNX format, and a reference genome file in CMAP format.
@@ -510,34 +521,37 @@ def calculate_telomere_lengths(xmap_path: str, bnx_path: str, cmap_path: str,
 
     """
 
-
     logger.info("Getting alignments from XMAP - Full alignments")
-    telomeric_alns_df = read_fandom_xmap(xmap_path, cmap_path,how=arms,chunksize=chunksize)
+    telomeric_alns_df = read_fandom_xmap(
+        xmap_path, cmap_path, how=arms, chunksize=chunksize)
     telomeric_alns_df["FullAlignment"] = 1
-    
+
     # GET PARTIAL ALIGNMENTS
     if pxmap_path is None:
         logger.info("Inferring partial alignment")
     pxmap_path = get_partial_alignment(xmap_path)
-    
+
     if partial and os.path.isfile(pxmap_path):
         logger.info("Getting alignments from XMAP - Partial alignments")
-        telomeric_alns_part = read_fandom_xmap(pxmap_path, cmap_path,how=arms,chunksize=chunksize)
+        telomeric_alns_part = read_fandom_xmap(
+            pxmap_path, cmap_path, how=arms, chunksize=chunksize)
         telomeric_alns_part["FullAlignment"] = 0
-        telomeric_alns_df = pd.concat([telomeric_alns_df,telomeric_alns_part])
+        telomeric_alns_df = pd.concat([telomeric_alns_df, telomeric_alns_part])
     else:
         logger.info("Skipping partial alignments")
-    
+
     molecule_ids = set(telomeric_alns_df.QryContigID.astype(str).unique())
-    
+
     logger.info("Finding information for %d molecules", len(molecule_ids))
     molecules = read_queried_molecules(bnx_path, molecule_ids)
-    
-    telomeres = calculate_telomeres(molecules,telomeric_alns_df)
+
+    telomeres = calculate_telomeres(molecules, telomeric_alns_df)
     # filter the molecules
-    telomeres = reduce_dataset(telomeres,ref_tol=ref_tol,mol_tol=mol_tol,dis_tol=dis_tol)
-    
+    telomeres = reduce_dataset(
+        telomeres, ref_tol=ref_tol, mol_tol=mol_tol, dis_tol=dis_tol)
+
     # statistics on telomeric_alns_df
-    get_xmap_statistics(telomeres,os.path.basename(xmap_path).replace(".xmap", ""))
-    
+    get_xmap_statistics(telomeres, os.path.basename(
+        xmap_path).replace(".xmap", ""))
+
     return telomeres
