@@ -243,7 +243,9 @@ def command_line_target() -> None:
 
     # update dictionary with functional arguments
 
-    targets = [target.update(func_args) for target in targets]
+    for target in targets:
+        target.update(func_args)
+
     if threads == 1:
         for target in targets:
             calculate_telomere_lengths_wrapper(target)

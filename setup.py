@@ -31,7 +31,7 @@ setup(name="TelOMpy_fnd",
                       },
       entry_points={
           'console_scripts': [
-              'telompy_fnd = telompy_fnd.cli:command_line_target',
+              'telompy_fnd = telompy_fnd.fnd_cli:command_line_target',
 
           ]}
       )
