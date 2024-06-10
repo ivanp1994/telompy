@@ -210,7 +210,7 @@ def validate_targets_target(args: Dict[str, str]) -> List[Dict[str, str]]:
 
 def calculate_telomere_lengths_wrapper(kwargs: Dict) -> None:
     "wrapper around function - for multiprocessing"
-    output_file = kwargs.pop("output_file")
+    output_file = kwargs.pop("output_file")+".csv"
     out_df = calculate_telomere_lengths(**kwargs)
     out_df.to_csv(output_file, index=False)
     return None
