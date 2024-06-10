@@ -399,7 +399,7 @@ def get_xmap_statistics(xmap_df: pd.DataFrame, name: Optional[str] = None) -> Di
     xmap_full = xmap_df.loc[xmap_df.FullAlignment == 1]
     xmap_part = xmap_df.loc[xmap_df.FullAlignment == 0]
 
-    #name = os.path.basename(xmap_path).replace(".xmap", "")
+    # name = os.path.basename(xmap_path).replace(".xmap", "")
 
     stats_full, mols_full = get_rough_xmap_stats(xmap_full, "full_alignment")
     stats_part, mols_part = get_rough_xmap_stats(xmap_part, "partial_alignmet")
