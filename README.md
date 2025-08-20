@@ -263,3 +263,22 @@ The second step is to align contigs to the reference. The files are found in a f
 Since optical mapping by BNGO can easily achieve chromosome-level coverage, we will refer to the first step as "molecule-to-contig" and the second step as "contig-to-chromosome" alignment.
 All locations of relevant files are specified in `const.py` for (relative) future-proofing should BNGO deem a change in the structure is necessary.
 
+### Estimated run time and memory allocation
+Given that TelOMpy uses information from final results, its footprint is rather small (miniscule when compared to the BNGO's assembling pipeline). It mostly depends on the number of samples, but the max time and RAM usage is around ~10 mins and 2 GB or RAM. Below is the runtime info from now defunct HPC Isabella, using Intel Xeon NX360 server (note the difference between CPU and System Time):
+
+Job 1692652 (extracting_telomeres) Complete
+ User             = ipokrova
+ Queue            = p28.q@nx360-m5-03-09.isabella
+ Host             = nx360-m5-03-09.isabella
+ Start Time       = 11/16/2023 13:52:52
+ End Time         = 11/16/2023 13:55:24
+ User Time        = 00:10:52
+ System Time      = 00:01:23
+ Wallclock Time   = 00:02:32
+ CPU              = 00:12:16
+ Max vmem         = 1.993G
+ 
+
+
+
+
